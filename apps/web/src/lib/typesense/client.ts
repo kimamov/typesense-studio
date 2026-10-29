@@ -59,12 +59,12 @@ export interface TypesenseClient {
   request<T>(method: string, path: string, options?: RequestOptions): Promise<T>
 }
 
-export function createClient(connection: Connection): TypesenseClient {
+export function createClient(connection: Connection, apiKey: string): TypesenseClient {
   const transport = effectiveTransport(connection)
   const target = nodeUrl(connection)
 
   async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
-    const headers: Record<string, string> = { 'X-TYPESENSE-API-KEY': connection.apiKey }
+    const headers: Record<string, string> = { 'X-TYPESENSE-API-KEY': apiKey }
     let body: BodyInit | undefined
     if (options.body !== undefined) {
       if (typeof options.body === 'string') {

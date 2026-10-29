@@ -15,12 +15,14 @@ export interface Connection {
   host: string
   port: number
   path: string
-  apiKey: string
   tag?: string
   transport: Exclude<TransportMode, 'native'>
+  /** Also keep the API key in localStorage; otherwise it lives only in this tab's sessionStorage. */
+  rememberApiKey: boolean
 }
 
-export type ConnectionInput = Omit<Connection, 'id'>
+/** Form values: connection settings plus the API key, which is stored separately. */
+export type ConnectionInput = Omit<Connection, 'id'> & { apiKey: string }
 
 export interface DebugInfo {
   state: number

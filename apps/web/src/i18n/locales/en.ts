@@ -19,7 +19,8 @@ export const en = {
   },
   connections: {
     title: 'Connections',
-    description: 'Saved Typesense servers. Connection details, including API keys, are stored in this browser only.',
+    description:
+      'Saved Typesense servers. Connection details are stored in this browser; API keys only for this tab unless you choose to remember them.',
     add: 'Add connection',
     edit: 'Edit connection',
     empty: 'No connections yet',
@@ -39,6 +40,10 @@ export const en = {
       path: 'Path',
       pathHint: 'Optional, e.g. when Typesense is served behind a reverse proxy under /api',
       apiKey: 'API key',
+      apiKeyKeep: 'Leave empty to keep the current key',
+      rememberApiKey: 'Remember API key on this device',
+      rememberApiKeyHint:
+        'Stores the key in this browser’s local storage. Otherwise it is kept only until you close this tab.',
       tag: 'Tag',
       tagHint: 'Optional label such as “production” or “staging”',
       transport: 'Connection mode',
@@ -60,6 +65,14 @@ export const en = {
     collections: 'Collections',
     switchConnection: 'Switch connection',
     manageConnections: 'Manage connections',
+  },
+  apiKeyDialog: {
+    title: 'API key for {{name}}',
+    description: 'Enter the API key to connect to',
+    submit: 'Connect',
+  },
+  connectionSettings: {
+    title: 'Connection settings',
   },
   status: {
     title: 'Server status',
@@ -106,6 +119,7 @@ export const en = {
     network:
       'The server could not be reached. Check host and port, or switch the connection mode to “Via proxy” if the server does not allow CORS.',
     unauthorized: 'The API key was rejected by the server.',
+    reenterApiKey: 'Enter API key again',
   },
 }
 

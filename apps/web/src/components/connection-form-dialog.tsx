@@ -13,10 +13,12 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { RememberApiKeyField } from '@/components/api-key-dialogs'
 import { useErrorMessage } from '@/hooks/use-typesense'
 import { api } from '@/lib/typesense/api'
 import { createClient, isDesktop } from '@/lib/typesense/client'
 import type { Connection, ConnectionInput } from '@/lib/typesense/types'
+import { useApiKey } from '@/stores/connections'
 
 const EMPTY: ConnectionInput = {
   name: '',
@@ -27,6 +29,7 @@ const EMPTY: ConnectionInput = {
   apiKey: '',
   tag: '',
   transport: 'direct',
+  rememberApiKey: false,
 }
 
 interface ConnectionFormDialogProps {
@@ -38,6 +41,7 @@ interface ConnectionFormDialogProps {
 
 export function ConnectionFormDialog({ open, onOpenChange, connection, onSave }: ConnectionFormDialogProps) {
   const { t } = useTranslation()
+  const apiKey = useApiKey(connection?.id ?? '')
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -48,7 +52,8 @@ export function ConnectionFormDialog({ open, onOpenChange, connection, onSave }:
         {/* Keyed so the form resets whenever another connection is edited. */}
         <ConnectionForm
           key={connection?.id ?? 'new'}
-          initial={connection ?? EMPTY}
+          initial={connection ? { ...connection, apiKey: apiKey ?? '' } : EMPTY}
+          isEdit={!!connection}
           onCancel={() => onOpenChange(false)}
           onSave={onSave}
         />
@@ -59,10 +64,12 @@ export function ConnectionFormDialog({ open, onOpenChange, connection, onSave }:
 
 function ConnectionForm({
   initial,
+  isEdit,
   onCancel,
   onSave,
 }: {
   initial: ConnectionInput
+  isEdit: boolean
   onCancel: () => void
   onSave: (input: ConnectionInput) => void
 }) {
@@ -84,7 +91,7 @@ function ConnectionForm({
   const testConnection = async () => {
     setTesting(true)
     try {
-      const debug = await api.debug(createClient({ ...withDefaults(), id: 'test' }))
+      const debug = await api.debug(createClient({ ...withDefaults(), id: 'test' }, values.apiKey))
       toast.success(t('connections.testOk', { version: debug.version }))
     } catch (error) {
       toast.error(t('connections.testFailed', { message: errorMessage(error) }))
@@ -144,11 +151,13 @@ function ConnectionForm({
         <Input
           id="conn-key"
           type="password"
-          required
+          required={!isEdit}
           autoComplete="off"
+          placeholder={isEdit ? t('connections.fields.apiKeyKeep') : undefined}
           value={values.apiKey}
           onChange={(e) => set('apiKey', e.target.value)}
         />
+        <RememberApiKeyField checked={values.rememberApiKey} onChange={(checked) => set('rememberApiKey', checked)} />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="conn-tag">{t('connections.fields.tag')}</Label>
