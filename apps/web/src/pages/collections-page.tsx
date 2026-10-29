@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { LibraryIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { QueryError } from '@/components/query-error'
@@ -47,8 +48,17 @@ export function CollectionsPage() {
             </TableHeader>
             <TableBody>
               {collections.data.map((c) => (
-                <TableRow key={c.name}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
+                <TableRow key={c.name} className="relative cursor-pointer">
+                  <TableCell className="font-medium">
+                    {/* The stretched link makes the whole row clickable while staying a real, focusable link. */}
+                    <Link
+                      to="/c/$connectionId/collections/$name"
+                      params={{ connectionId: connection.id, name: c.name }}
+                      className="after:absolute after:inset-0 hover:underline"
+                    >
+                      {c.name}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">{formatNumber(c.num_documents, lng, 0)}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{formatDate(c.created_at, lng)}</TableCell>
                 </TableRow>
