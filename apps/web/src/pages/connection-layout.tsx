@@ -7,10 +7,12 @@ import {
   DatabaseIcon,
   LibraryIcon,
   SettingsIcon,
+  SlidersHorizontalIcon,
   type LucideIcon,
 } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ApiKeyDialog, ConnectionSettingsDialog } from '@/components/api-key-dialogs'
 import { PreferencesMenu } from '@/components/preferences-menu'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -40,7 +42,7 @@ import {
 import { ActiveConnectionContext } from '@/hooks/use-active-connection'
 import { createClient, nodeUrl } from '@/lib/typesense/client'
 import type { Connection } from '@/lib/typesense/types'
-import { useConnection, useConnections } from '@/stores/connections'
+import { useApiKey, useConnection, useConnections } from '@/stores/connections'
 
 interface NavItem {
   to: '/c/$connectionId' | '/c/$connectionId/collections'
@@ -52,7 +54,18 @@ export function ConnectionLayout({ connectionId }: { connectionId: string }) {
   const { t } = useTranslation()
   const matchRoute = useMatchRoute()
   const connection = useConnection(connectionId)
-  const active = useMemo(() => (connection ? { connection, client: createClient(connection) } : null), [connection])
+  const apiKey = useApiKey(connectionId)
+  const forgetApiKey = useConnections((s) => s.forgetApiKey)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const active = useMemo(
+    () =>
+      connection && apiKey
+        ? { connection, client: createClient(connection, apiKey), requestApiKey: () => forgetApiKey(connection.id) }
+        : null,
+    [connection, apiKey, forgetApiKey],
+  )
+
+  if (connection && !active) return <ApiKeyDialog connection={connection} />
 
   if (!active) {
     return (
@@ -121,6 +134,16 @@ export function ConnectionLayout({ connectionId }: { connectionId: string }) {
             <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
             <span className="truncate text-sm font-medium">{active.connection.name}</span>
             {active.connection.tag && <Badge variant="secondary">{active.connection.tag}</Badge>}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="ml-auto"
+              aria-label={t('connectionSettings.title')}
+              onClick={() => setSettingsOpen(true)}
+            >
+              <SlidersHorizontalIcon />
+            </Button>
+            <ConnectionSettingsDialog connection={active.connection} open={settingsOpen} onOpenChange={setSettingsOpen} />
           </header>
           <div className="flex flex-1 flex-col gap-6 p-4 sm:p-6">
             <Outlet />

@@ -1,11 +1,5 @@
-import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { createClient, TypesenseError, type TypesenseClient } from '@/lib/typesense/client'
-import type { Connection } from '@/lib/typesense/types'
-
-export function useClient(connection: Connection): TypesenseClient {
-  return useMemo(() => createClient(connection), [connection])
-}
+import { TypesenseError } from '@/lib/typesense/client'
 
 /** Turns transport and API errors into a message a user can act on. */
 export function useErrorMessage(): (error: unknown) => string {

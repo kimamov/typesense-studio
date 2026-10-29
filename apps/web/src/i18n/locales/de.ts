@@ -21,7 +21,8 @@ export const de: Messages = {
   },
   connections: {
     title: 'Verbindungen',
-    description: 'Gespeicherte Typesense-Server. Verbindungsdaten inklusive API-Keys werden nur in diesem Browser gespeichert.',
+    description:
+      'Gespeicherte Typesense-Server. Verbindungsdaten liegen in diesem Browser, API-Keys nur für diesen Tab, außer du lässt sie dir merken.',
     add: 'Verbindung hinzufügen',
     edit: 'Verbindung bearbeiten',
     empty: 'Noch keine Verbindungen',
@@ -41,6 +42,10 @@ export const de: Messages = {
       path: 'Pfad',
       pathHint: 'Optional, z. B. wenn Typesense hinter einem Reverse Proxy unter /api läuft',
       apiKey: 'API-Key',
+      apiKeyKeep: 'Leer lassen, um den aktuellen Key zu behalten',
+      rememberApiKey: 'API-Key auf diesem Gerät merken',
+      rememberApiKeyHint:
+        'Speichert den Key im lokalen Speicher dieses Browsers. Sonst bleibt er nur, bis du diesen Tab schließt.',
       tag: 'Tag',
       tagHint: 'Optionale Bezeichnung wie „production“ oder „staging“',
       transport: 'Verbindungsmodus',
@@ -62,6 +67,14 @@ export const de: Messages = {
     collections: 'Collections',
     switchConnection: 'Verbindung wechseln',
     manageConnections: 'Verbindungen verwalten',
+  },
+  apiKeyDialog: {
+    title: 'API-Key für {{name}}',
+    description: 'Gib den API-Key ein, um dich zu verbinden mit',
+    submit: 'Verbinden',
+  },
+  connectionSettings: {
+    title: 'Verbindungseinstellungen',
   },
   status: {
     title: 'Serverstatus',
@@ -108,5 +121,6 @@ export const de: Messages = {
     network:
       'Der Server ist nicht erreichbar. Prüfe Host und Port oder stelle den Verbindungsmodus auf „Über Proxy“, falls der Server kein CORS erlaubt.',
     unauthorized: 'Der API-Key wurde vom Server abgelehnt.',
+    reenterApiKey: 'API-Key erneut eingeben',
   },
 }

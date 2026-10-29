@@ -5,6 +5,8 @@ import type { Connection } from '@/lib/typesense/types'
 export interface ActiveConnection {
   connection: Connection
   client: TypesenseClient
+  /** Discards the current API key so the layout asks for it again. */
+  requestApiKey: () => void
 }
 
 export const ActiveConnectionContext = createContext<ActiveConnection | null>(null)
