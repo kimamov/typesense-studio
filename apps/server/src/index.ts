@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { serve } from '@hono/node-server'
+import { createServer } from 'node:http'
 import { parseAllowlist } from './allowlist.ts'
 import { createApp } from './app.ts'
 
@@ -25,8 +25,8 @@ const app = createApp({
     : undefined,
 })
 
-serve({ fetch: app.fetch, port, hostname: host }, (info) => {
+createServer(app).listen(port, host, () => {
   const proxy =
     allowlist.kind === 'all' ? 'enabled for all targets' : allowlist.patterns.length ? 'enabled (allowlist)' : 'disabled'
-  console.log(`Typesense Studio listening on http://${host}:${info.port}${basePath}/ — proxy ${proxy}`)
+  console.log(`Typesense Studio listening on http://${host}:${port}${basePath}/ — proxy ${proxy}`)
 })

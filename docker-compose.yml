@@ -1,0 +1,13 @@
+# Demo Typesense for local development and manual verification.
+# The API key is a throwaway value for this local instance only.
+services:
+  typesense:
+    image: typesense/typesense:30.2
+    command: --data-dir /data --api-key=demo-key
+    ports:
+      - "8108:8108"
+    volumes:
+      - typesense-data:/data
+
+volumes:
+  typesense-data:

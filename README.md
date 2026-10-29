@@ -11,10 +11,12 @@ A modern dashboard for managing [Typesense](https://typesense.org) 30+ servers â
 | Path | What |
 |---|---|
 | `apps/web` | React 19 + Vite + shadcn/ui single-page app |
-| `apps/server` | Node (Hono) server: serves the web app and the CORS proxy |
+| `apps/server` | Dependency-free Node server (`node:http`): serves the web app and the CORS proxy |
 | `apps/desktop` | Tauri v2 shell (planned) |
 
 ## Development
+
+Requires Node 26+ (the server runs its TypeScript sources directly, without a build step) and pnpm.
 
 ```bash
 pnpm install
@@ -28,10 +30,10 @@ Before pushing, run the same checks as CI (typecheck, lint, tests, build):
 pnpm check
 ```
 
-A local Typesense for testing:
+A demo Typesense on http://localhost:8108 (API key `demo-key`):
 
 ```bash
-docker run -d -p 8108:8108 typesense/typesense:30.2 --data-dir /tmp --api-key=dev-key
+docker compose up -d
 ```
 
 ## Connection modes
