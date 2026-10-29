@@ -1,5 +1,7 @@
 # Typesense Studio
 
+[![CI](https://github.com/kimamov/typesense-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/kimamov/typesense-studio/actions/workflows/ci.yml)
+
 A modern dashboard for managing [Typesense](https://typesense.org) 30+ servers â€” as a web app, a Docker image or a desktop app.
 
 > Work in progress. Inspired by [bfritscher/typesense-dashboard](https://github.com/bfritscher/typesense-dashboard).
@@ -18,6 +20,12 @@ A modern dashboard for managing [Typesense](https://typesense.org) 30+ servers â
 pnpm install
 pnpm dev:server   # proxy + API on http://localhost:8787 (allows localhost targets)
 pnpm dev          # web app on http://localhost:5173, /proxy forwarded to the server
+```
+
+Before pushing, run the same checks as CI (typecheck, lint, tests, build):
+
+```bash
+pnpm check
 ```
 
 A local Typesense for testing:
