@@ -29,3 +29,6 @@ export function percent(used: number | string | undefined, total: number | strin
 export function formatDate(unixSeconds: number, locale?: string): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(unixSeconds * 1000))
 }
+
+// CI smoke test: deliberate type error, reverted in the next commit.
+export const ciSmokeTest: number = "not a number"
