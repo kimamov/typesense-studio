@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import { useActiveConnection } from '@/hooks/use-active-connection'
 import { formatNumber } from '@/lib/format'
 import { api } from '@/lib/typesense/api'
@@ -40,9 +41,16 @@ import {
   type SearchParams,
 } from '@/lib/typesense/search'
 import type { CollectionSchema } from '@/lib/typesense/types'
+import type { JsonEditorProps } from '@/components/json-editor'
 
-// CodeMirror is only loaded once JSON mode is opened.
-const JsonEditor = lazy(() => import('@/components/json-editor'))
+// CodeMirror is only loaded once JSON mode is opened. If its chunk fails to load (offline, or replaced
+// by a newer deploy), a plain textarea takes its place so JSON mode keeps working.
+const JsonEditor = lazy(() =>
+  import('@/components/json-editor').catch((error: unknown) => {
+    console.error('Failed to load the JSON editor', error)
+    return { default: JsonTextarea }
+  }),
+)
 
 const DEFAULT_PER_PAGE = 25
 const DEBOUNCE_MS = 300
@@ -381,6 +389,25 @@ function JsonSearchInput({ value, onApply }: { value: Record<string, unknown>; o
         </Button>
       </div>
     </div>
+  )
+}
+
+/** Fallback for the JSON editor without highlighting or inline errors. */
+function JsonTextarea({ value, onChange, onSubmit, ...props }: JsonEditorProps) {
+  return (
+    <Textarea
+      {...props}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault()
+          onSubmit?.()
+        }
+      }}
+      spellCheck={false}
+      className="min-h-40 font-mono text-xs md:text-xs"
+    />
   )
 }
 

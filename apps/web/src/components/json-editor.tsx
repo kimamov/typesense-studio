@@ -27,7 +27,7 @@ const theme = EditorView.theme({
   '.cm-tooltip': { backgroundColor: 'var(--popover)', color: 'var(--popover-foreground)', border: '1px solid var(--border)' },
 })
 
-interface JsonEditorProps {
+export interface JsonEditorProps {
   value: string
   onChange: (value: string) => void
   /** Called on ⌘/Ctrl+Enter. */
