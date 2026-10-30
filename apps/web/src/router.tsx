@@ -1,4 +1,5 @@
 import { createHashHistory, createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router'
+import { CollectionPage } from '@/pages/collection-page'
 import { CollectionsPage } from '@/pages/collections-page'
 import { ConnectionLayout } from '@/pages/connection-layout'
 import { ConnectionsPage } from '@/pages/connections-page'
@@ -25,7 +26,19 @@ const collectionsRoute = createRoute({
   component: CollectionsPage,
 })
 
-const routeTree = rootRoute.addChildren([connectionsRoute, connectionRoute.addChildren([statusRoute, collectionsRoute])])
+const collectionRoute = createRoute({
+  getParentRoute: () => connectionRoute,
+  path: '/collections/$name',
+  component: function CollectionRoute() {
+    const { name } = collectionRoute.useParams()
+    return <CollectionPage name={name} />
+  },
+})
+
+const routeTree = rootRoute.addChildren([
+  connectionsRoute,
+  connectionRoute.addChildren([statusRoute, collectionsRoute, collectionRoute]),
+])
 
 // Hash history works unchanged on static hosting, under a sub-path and inside the desktop shell.
 export const router = createRouter({ routeTree, history: createHashHistory() })

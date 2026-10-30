@@ -114,6 +114,21 @@ export const en = {
     documents: 'Documents',
     createdAt: 'Created',
   },
+  collection: {
+    notFound: 'There is no collection named “{{name}}” on this server.',
+    defaultSortingField: 'Default sorting field',
+    synonymSets: 'Synonym sets',
+    curationSets: 'Curation sets',
+    fieldsTab: 'Fields ({{count}})',
+    field: 'Field',
+    type: 'Type',
+    flags: 'Flags',
+    locale: 'Locale',
+    notIndexed: 'not indexed',
+    copy: 'Copy',
+    copied: 'Schema copied to the clipboard',
+    copyFailed: 'Could not access the clipboard',
+  },
   errors: {
     title: 'Something went wrong',
     network:

@@ -12,4 +12,6 @@ export const api = {
     client.request<Stats>('GET', '/stats.json', { signal }),
   collections: (client: TypesenseClient, signal?: AbortSignal) =>
     client.request<CollectionSchema[]>('GET', '/collections', { query: { exclude_fields: 'fields' }, signal }),
+  collection: (client: TypesenseClient, name: string, signal?: AbortSignal) =>
+    client.request<CollectionSchema>('GET', `/collections/${encodeURIComponent(name)}`, { signal }),
 }

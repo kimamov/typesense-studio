@@ -116,6 +116,21 @@ export const de: Messages = {
     documents: 'Dokumente',
     createdAt: 'Erstellt',
   },
+  collection: {
+    notFound: 'Auf diesem Server gibt es keine Collection namens „{{name}}“.',
+    defaultSortingField: 'Standard-Sortierfeld',
+    synonymSets: 'Synonym-Sets',
+    curationSets: 'Curation-Sets',
+    fieldsTab: 'Felder ({{count}})',
+    field: 'Feld',
+    type: 'Typ',
+    flags: 'Flags',
+    locale: 'Locale',
+    notIndexed: 'nicht indexiert',
+    copy: 'Kopieren',
+    copied: 'Schema in die Zwischenablage kopiert',
+    copyFailed: 'Kein Zugriff auf die Zwischenablage',
+  },
   errors: {
     title: 'Etwas ist schiefgelaufen',
     network:
