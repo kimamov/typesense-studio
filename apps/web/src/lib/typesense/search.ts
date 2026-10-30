@@ -143,7 +143,15 @@ export interface DocumentSearch {
   sort?: string
   page?: number
   per_page?: number
+  /**
+   * Raw Typesense search parameters applied in JSON mode; present only in that mode. The form fields
+   * above stay in the URL untouched, so switching back shows the form as it was.
+   */
+  json?: Record<string, unknown>
 }
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === 'object' && !Array.isArray(value)
 
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -175,5 +183,6 @@ export function parseDocumentSearch(raw: Record<string, unknown>): DocumentSearc
     ...(typeof raw.sort === 'string' && /^[\w.]+:(asc|desc)$/.test(raw.sort) && { sort: raw.sort }),
     ...(positive(raw.page) && { page: positive(raw.page) }),
     ...(PER_PAGE_OPTIONS.includes(raw.per_page as (typeof PER_PAGE_OPTIONS)[number]) && { per_page: raw.per_page as number }),
+    ...(isObject(raw.json) && { json: raw.json }),
   }
 }
