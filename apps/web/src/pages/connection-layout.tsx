@@ -15,6 +15,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ApiKeyDialog, ConnectionSettingsDialog } from '@/components/api-key-dialogs'
+import { CollectionNav } from '@/components/collection-nav'
 import { PreferencesMenu } from '@/components/preferences-menu'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -117,8 +118,8 @@ export function ConnectionLayout({ connectionId }: { connectionId: string }) {
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton
                         render={<Link to={item.to} params={{ connectionId }} />}
-                        // The status page is the index route, so only it needs an exact match.
-                        isActive={!!matchRoute({ to: item.to, params: { connectionId }, fuzzy: item.to !== '/c/$connectionId' })}
+                        // Exact matches only: a collection's pages are highlighted in the collection group.
+                        isActive={!!matchRoute({ to: item.to, params: { connectionId } })}
                       >
                         <item.icon />
                         <span>{item.label}</span>
@@ -128,6 +129,7 @@ export function ConnectionLayout({ connectionId }: { connectionId: string }) {
                 </SidebarMenu>
               </SidebarGroup>
             ))}
+            <CollectionNav />
           </SidebarContent>
           <SidebarFooter>
             <div className="flex items-center justify-between flex-wrap">
