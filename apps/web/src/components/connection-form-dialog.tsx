@@ -167,7 +167,12 @@ function ConnectionForm({
       {!isDesktop() && (
         <div className="grid gap-2">
           <Label>{t('connections.fields.transport')}</Label>
-          <Select value={values.transport} onValueChange={(v) => set('transport', v as ConnectionInput['transport'])}>
+          <Select
+            value={values.transport}
+            onValueChange={(v) => set('transport', v as ConnectionInput['transport'])}
+            // Base UI renders the raw value in <SelectValue> unless it knows the item labels.
+            items={{ direct: t('connections.transport.direct'), proxy: t('connections.transport.proxy') }}
+          >
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>

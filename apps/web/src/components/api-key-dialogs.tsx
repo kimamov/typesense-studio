@@ -22,7 +22,7 @@ export function RememberApiKeyField({ checked, onChange }: { checked: boolean; o
   const id = useId()
   return (
     <div className="flex items-start gap-3">
-      <Checkbox id={id} checked={checked} onCheckedChange={(value) => onChange(value === true)} className="mt-0.5" />
+      <Checkbox id={id} checked={checked} onCheckedChange={(value) => onChange(value)} className="mt-0.5" />
       <div className="grid gap-1">
         <Label htmlFor={id}>{t('connections.fields.rememberApiKey')}</Label>
         <p className="text-xs text-muted-foreground">{t('connections.fields.rememberApiKeyHint')}</p>
