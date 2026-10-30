@@ -1,8 +1,9 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CopyIcon, TriangleAlertIcon } from 'lucide-react'
 import { useState, type SubmitEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { MultiValueCombobox } from '@/components/multi-value-combobox'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useActiveConnection } from '@/hooks/use-active-connection'
 import { useErrorMessage } from '@/hooks/use-typesense'
 import { copyText } from '@/lib/clipboard'
+import { KNOWN_ACTIONS } from '@/lib/typesense/actions'
 import { api } from '@/lib/typesense/api'
 import type { ApiKey, ApiKeyInput } from '@/lib/typesense/types'
 
@@ -33,23 +35,17 @@ const EXAMPLES: Record<Exclude<KeyType, 'custom'>, ApiKeyInput> = {
 
 interface FormValues {
   description: string
-  actions: string
-  collections: string
+  actions: string[]
+  collections: string[]
   /** `yyyy-mm-dd` from the date input; empty means the key never expires. */
   expires: string
 }
 
-const splitList = (value: string) =>
-  value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
-
 function toInput(values: FormValues): ApiKeyInput {
   return {
     description: values.description.trim(),
-    actions: splitList(values.actions),
-    collections: splitList(values.collections),
+    actions: values.actions,
+    collections: values.collections,
     // The key stays valid until the end of the chosen day.
     ...(values.expires && { expires_at: Math.floor(new Date(`${values.expires}T23:59:59`).getTime() / 1000) }),
   }
@@ -100,10 +96,17 @@ function CreateApiKeyForm({ onCancel, onCreated }: { onCancel: () => void; onCre
   const [keyType, setKeyType] = useState<KeyType>('search')
   const [values, setValues] = useState<FormValues>({
     description: '',
-    actions: EXAMPLES.search.actions.join(', '),
-    collections: '*',
+    actions: EXAMPLES.search.actions,
+    collections: ['*'],
     expires: '',
   })
+  const [showMissing, setShowMissing] = useState(false)
+  // Shares the cache of the collections page; without it the field still accepts typed names.
+  const collections = useQuery({
+    queryKey: [connection.id, 'collections'],
+    queryFn: ({ signal }) => api.collections(client, signal),
+  })
+  const collectionSuggestions = ['*', ...(collections.data ?? []).map((c) => c.name).sort((a, b) => a.localeCompare(b))]
   const [json, setJson] = useState('')
   const [jsonError, setJsonError] = useState<string | null>(null)
 
@@ -114,8 +117,9 @@ function CreateApiKeyForm({ onCancel, onCreated }: { onCancel: () => void; onCre
   // Presets fill in the fields they fix and hide them; switching to custom keeps the values to start from.
   const changeKeyType = (type: KeyType) => {
     setKeyType(type)
-    if (type === 'admin') setValues((v) => ({ ...v, actions: '*', collections: '*' }))
-    if (type === 'search') setValues((v) => ({ ...v, actions: 'documents:search', collections: v.collections || '*' }))
+    if (type === 'admin') setValues((v) => ({ ...v, actions: ['*'], collections: ['*'] }))
+    if (type === 'search')
+      setValues((v) => ({ ...v, actions: ['documents:search'], collections: v.collections.length ? v.collections : ['*'] }))
   }
 
   const changeTab = (next: 'form' | 'json') => {
@@ -136,7 +140,11 @@ function CreateApiKeyForm({ onCancel, onCreated }: { onCancel: () => void; onCre
 
   const submit = (event: SubmitEvent) => {
     event.preventDefault()
-    if (tab === 'form') return create.mutate(input)
+    if (tab === 'form') {
+      // The chips inputs cannot use native `required`.
+      if (input.actions.length === 0 || input.collections.length === 0) return setShowMissing(true)
+      return create.mutate(input)
+    }
     try {
       create.mutate(JSON.parse(json) as ApiKeyInput)
     } catch (error) {
@@ -183,27 +191,27 @@ function CreateApiKeyForm({ onCancel, onCreated }: { onCancel: () => void; onCre
           {keyType === 'custom' && (
             <div className="grid gap-2">
               <Label htmlFor="key-actions">{t('apiKeys.actions')}</Label>
-              <Input
+              <MultiValueCombobox
                 id="key-actions"
-                required
-                className="font-mono"
-                value={values.actions}
-                onChange={(e) => set('actions', e.target.value)}
+                values={values.actions}
+                onChange={(next) => set('actions', next)}
+                suggestions={KNOWN_ACTIONS}
+                invalid={showMissing && values.actions.length === 0}
               />
-              <p className="text-xs text-muted-foreground">{t('apiKeys.actionsHint')}</p>
+              <FieldHint missing={showMissing && values.actions.length === 0} hint={t('apiKeys.actionsHint')} />
             </div>
           )}
           {keyType !== 'admin' && (
             <div className="grid gap-2">
               <Label htmlFor="key-collections">{t('apiKeys.collections')}</Label>
-              <Input
+              <MultiValueCombobox
                 id="key-collections"
-                required
-                className="font-mono"
-                value={values.collections}
-                onChange={(e) => set('collections', e.target.value)}
+                values={values.collections}
+                onChange={(next) => set('collections', next)}
+                suggestions={collectionSuggestions}
+                invalid={showMissing && values.collections.length === 0}
               />
-              <p className="text-xs text-muted-foreground">{t('apiKeys.collectionsHint')}</p>
+              <FieldHint missing={showMissing && values.collections.length === 0} hint={t('apiKeys.collectionsHint')} />
             </div>
           )}
           <div className="grid gap-2">
@@ -257,6 +265,15 @@ function CreateApiKeyForm({ onCancel, onCreated }: { onCancel: () => void; onCre
         </Button>
       </DialogFooter>
     </form>
+  )
+}
+
+function FieldHint({ missing, hint }: { missing: boolean; hint: string }) {
+  const { t } = useTranslation()
+  return missing ? (
+    <p className="text-xs text-destructive">{t('apiKeys.valueRequired')}</p>
+  ) : (
+    <p className="text-xs text-muted-foreground">{hint}</p>
   )
 }
 

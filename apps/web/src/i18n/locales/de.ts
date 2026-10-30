@@ -164,8 +164,11 @@ export const de: Messages = {
       custom:
         'Beliebige Kombination von Aktionen, z. B. „documents:*“ oder „collections:list“. Nur Keys mit „*“ oder „keys:*“ können sich bei Typesense Studio anmelden.',
     },
-    actionsHint: 'Kommagetrennt, z. B. „*“, „documents:search“ oder „collections:*“.',
-    collectionsHint: 'Kommagetrennte Collection-Namen oder reguläre Ausdrücke, z. B. „products, org_.*“; „*“ für alle.',
+    actionsHint: 'Aus der Liste wählen oder eine beliebige Aktion eingeben und mit Enter oder Komma bestätigen, z. B. „documents:*“.',
+    collectionsHint: 'Collections wählen oder einen Namen bzw. regulären Ausdruck wie „org_.*“ eingeben; „*“ für alle.',
+    addCustom: '„{{value}}“ hinzufügen',
+    noSuggestions: 'Keine Vorschläge',
+    valueRequired: 'Mindestens einen Wert angeben.',
     expiresHint: 'Optional. Ohne Datum läuft der Key nie ab.',
     insertExample: 'Beispiel einfügen:',
     jsonHint:

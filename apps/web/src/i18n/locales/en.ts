@@ -161,8 +161,11 @@ export const en = {
       custom:
         'Any combination of actions, e.g. “documents:*” or “collections:list”. Only keys with “*” or “keys:*” can log in to Typesense Studio.',
     },
-    actionsHint: 'Comma-separated, e.g. “*”, “documents:search” or “collections:*”.',
-    collectionsHint: 'Comma-separated collection names or regular expressions, e.g. “products, org_.*”; “*” for all.',
+    actionsHint: 'Pick from the list or type any action and press Enter or comma, e.g. “documents:*”.',
+    collectionsHint: 'Pick collections or type a name or regular expression such as “org_.*”; “*” for all.',
+    addCustom: 'Add “{{value}}”',
+    noSuggestions: 'No suggestions',
+    valueRequired: 'Add at least one value.',
     expiresHint: 'Optional. Without a date the key never expires.',
     insertExample: 'Insert example:',
     jsonHint:
