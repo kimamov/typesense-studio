@@ -78,7 +78,16 @@ export function CollectionNav() {
             <SidebarMenuButton
               // Without a selected collection the pages have no target, so they are shown disabled.
               disabled={!selected}
-              render={selected ? <Link to={page.to} params={{ connectionId: connection.id, name: selected }} /> : undefined}
+              render={
+                selected ? (
+                  <Link
+                    to={page.to}
+                    params={{ connectionId: connection.id, name: selected }}
+                    // The schema page's path is a prefix of the collection's other pages.
+                    activeOptions={{ exact: true, includeSearch: false }}
+                  />
+                ) : undefined
+              }
               isActive={!!selected && !!matchRoute({ to: page.to, params: { connectionId: connection.id, name: selected } })}
             >
               <page.icon />
