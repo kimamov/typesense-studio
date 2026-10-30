@@ -63,6 +63,7 @@ export const en = {
     status: 'Status',
     data: 'Data',
     collections: 'Collections',
+    apiKeys: 'API Keys',
     switchConnection: 'Switch connection',
     manageConnections: 'Manage connections',
   },
@@ -129,11 +130,58 @@ export const en = {
     copied: 'Schema copied to the clipboard',
     copyFailed: 'Could not access the clipboard',
   },
+  apiKeys: {
+    title: 'API Keys',
+    description:
+      'Keys stored on this server. The key of this connection and the bootstrap key Typesense was started with are not listed.',
+    create: 'Create key',
+    createDescription: 'Typesense shows the full key only once, right after it is created.',
+    empty: 'This server has no other API keys.',
+    descriptionField: 'Description',
+    key: 'Key',
+    actions: 'Actions',
+    collections: 'Collections',
+    expires: 'Expires',
+    never: 'Never',
+    expired: 'expired',
+    rowActions: 'Row actions',
+    confirmDelete: 'Delete the API key “{{name}}”? Apps using it lose access immediately.',
+    deleted: 'API key deleted',
+    formTab: 'Form',
+    type: 'Key type',
+    types: {
+      admin: 'Admin key',
+      search: 'Search-only key',
+      custom: 'Custom',
+    },
+    typeHints: {
+      admin: 'Actions “*” on collections “*”: full access, including managing keys. Can log in to Typesense Studio. Keep it secret.',
+      search:
+        'Action “documents:search” on the listed collections: can only search. Safe to use in a frontend; cannot log in to Typesense Studio.',
+      custom:
+        'Any combination of actions, e.g. “documents:*” or “collections:list”. Only keys with “*” or “keys:*” can log in to Typesense Studio.',
+    },
+    actionsHint: 'Comma-separated, e.g. “*”, “documents:search” or “collections:*”.',
+    collectionsHint: 'Comma-separated collection names or regular expressions, e.g. “products, org_.*”; “*” for all.',
+    expiresHint: 'Optional. Without a date the key never expires.',
+    insertExample: 'Insert example:',
+    jsonHint:
+      'Body of POST /keys. An admin key has "actions": ["*"], a search-only key "actions": ["documents:search"]. "description", "actions" and "collections" are required.',
+    invalidJson: 'Invalid JSON: {{message}}',
+    createdTitle: 'API key created',
+    copyNowTitle: 'Copy the key now',
+    copyNow: 'Typesense will not show it again. If it gets lost, delete it and create a new one.',
+    copied: 'Key copied to the clipboard',
+    createdAdminHint: 'This admin key can be used to log in to Typesense Studio.',
+    createdOtherHint: 'Without “*” or “keys:*” this key cannot log in to Typesense Studio.',
+    done: 'Done',
+  },
   errors: {
     title: 'Something went wrong',
     network:
       'The server could not be reached. Check host and port, or switch the connection mode to “Via proxy” if the server does not allow CORS.',
-    unauthorized: 'The API key was rejected by the server.',
+    unauthorized:
+      'The API key is invalid or has no admin rights. Typesense Studio needs a key with the action “*” or at least “keys:*”.',
     reenterApiKey: 'Enter API key again',
   },
 }

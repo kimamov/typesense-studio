@@ -1,5 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useState, type SubmitEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -13,7 +14,8 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { nodeUrl } from '@/lib/typesense/client'
+import { api } from '@/lib/typesense/api'
+import { createClient, isKeyRejected, nodeUrl } from '@/lib/typesense/client'
 import type { Connection } from '@/lib/typesense/types'
 import { useConnections } from '@/stores/connections'
 
@@ -31,16 +33,38 @@ export function RememberApiKeyField({ checked, onChange }: { checked: boolean; o
   )
 }
 
-/** Asks for the key of a connection whose key is neither in this tab's session nor remembered. */
-export function ApiKeyDialog({ connection }: { connection: Connection }) {
+/**
+ * Asks for the key of a connection whose key is unknown in this tab, or was rejected as not being
+ * an admin key (`rejected`).
+ */
+export function ApiKeyDialog({ connection, rejected = false }: { connection: Connection; rejected?: boolean }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const setApiKey = useConnections((s) => s.setApiKey)
   const [apiKey, setValue] = useState('')
   const [remember, setRemember] = useState(connection.rememberApiKey)
+  const [keyRejected, setKeyRejected] = useState(rejected)
+  const [checking, setChecking] = useState(false)
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: SubmitEvent) => {
     event.preventDefault()
+    setChecking(true)
+    try {
+      // Fills the cache the connection layout checks, so an accepted key opens the connection right away.
+      await queryClient.query({
+        queryKey: [connection.id, 'keys'],
+        queryFn: ({ signal }) => api.keys(createClient(connection, apiKey), signal),
+      })
+    } catch (error) {
+      // An unreachable server is reported by the pages themselves.
+      if (isKeyRejected(error)) {
+        setKeyRejected(true)
+        return
+      }
+    } finally {
+      setChecking(false)
+    }
     setApiKey(connection.id, apiKey, remember)
   }
 
@@ -63,15 +87,22 @@ export function ApiKeyDialog({ connection }: { connection: Connection }) {
               autoFocus
               autoComplete="off"
               value={apiKey}
-              onChange={(e) => setValue(e.target.value)}
+              aria-invalid={keyRejected || undefined}
+              onChange={(e) => {
+                setValue(e.target.value)
+                setKeyRejected(false)
+              }}
             />
+            {keyRejected && <p className="text-xs text-destructive">{t('errors.unauthorized')}</p>}
           </div>
           <RememberApiKeyField checked={remember} onChange={setRemember} />
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => void navigate({ to: '/' })}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit">{t('apiKeyDialog.submit')}</Button>
+            <Button type="submit" disabled={checking}>
+              {checking ? t('common.loading') : t('apiKeyDialog.submit')}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

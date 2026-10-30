@@ -5,11 +5,13 @@ import {
   CheckIcon,
   ChevronsUpDownIcon,
   DatabaseIcon,
+  KeyRoundIcon,
   LibraryIcon,
   SettingsIcon,
   SlidersHorizontalIcon,
   type LucideIcon,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ApiKeyDialog, ConnectionSettingsDialog } from '@/components/api-key-dialogs'
@@ -41,12 +43,13 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { ActiveConnectionContext } from '@/hooks/use-active-connection'
-import { createClient, nodeUrl } from '@/lib/typesense/client'
+import { api } from '@/lib/typesense/api'
+import { createClient, isKeyRejected, nodeUrl } from '@/lib/typesense/client'
 import type { Connection } from '@/lib/typesense/types'
 import { useApiKey, useConnection, useConnections } from '@/stores/connections'
 
 interface NavItem {
-  to: '/c/$connectionId' | '/c/$connectionId/collections'
+  to: '/c/$connectionId' | '/c/$connectionId/keys' | '/c/$connectionId/collections'
   label: string
   icon: LucideIcon
 }
@@ -65,8 +68,15 @@ export function ConnectionLayout({ connectionId }: { connectionId: string }) {
         : null,
     [connection, apiKey, forgetApiKey],
   )
+  // Studio needs an admin key; a stored key may be a search-only key or may have lost its rights.
+  const keys = useQuery({
+    queryKey: [connectionId, 'keys'],
+    queryFn: ({ signal }) => api.keys(active!.client, signal),
+    enabled: !!active,
+  })
 
   if (connection && !active) return <ApiKeyDialog connection={connection} />
+  if (connection && isKeyRejected(keys.error)) return <ApiKeyDialog key="rejected" connection={connection} rejected />
 
   if (!active) {
     return (
@@ -81,7 +91,13 @@ export function ConnectionLayout({ connectionId }: { connectionId: string }) {
   }
 
   const groups: { label: string; items: NavItem[] }[] = [
-    { label: t('nav.server'), items: [{ to: '/c/$connectionId', label: t('nav.status'), icon: ActivityIcon }] },
+    {
+      label: t('nav.server'),
+      items: [
+        { to: '/c/$connectionId', label: t('nav.status'), icon: ActivityIcon },
+        { to: '/c/$connectionId/keys', label: t('nav.apiKeys'), icon: KeyRoundIcon },
+      ],
+    },
     { label: t('nav.data'), items: [{ to: '/c/$connectionId/collections', label: t('nav.collections'), icon: LibraryIcon }] },
   ]
 

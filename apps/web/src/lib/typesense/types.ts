@@ -79,3 +79,18 @@ export interface CollectionSchema {
   metadata?: Record<string, unknown>
   [key: string]: unknown
 }
+
+export interface ApiKey {
+  id: number
+  description: string
+  actions: string[]
+  collections: string[]
+  expires_at: number
+  autodelete?: boolean
+  /** First characters of the key; the full value is only returned on creation. */
+  value_prefix?: string
+  value?: string
+}
+
+export type ApiKeyInput = Pick<ApiKey, 'description' | 'actions' | 'collections'> &
+  Partial<Pick<ApiKey, 'expires_at' | 'autodelete' | 'value'>>

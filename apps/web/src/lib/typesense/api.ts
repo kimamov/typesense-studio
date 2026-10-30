@@ -1,5 +1,5 @@
 import type { TypesenseClient } from './client'
-import type { CollectionSchema, DebugInfo, HealthInfo, Metrics, Stats } from './types'
+import type { ApiKey, ApiKeyInput, CollectionSchema, DebugInfo, HealthInfo, Metrics, Stats } from './types'
 
 export const api = {
   health: (client: TypesenseClient, signal?: AbortSignal) =>
@@ -14,4 +14,8 @@ export const api = {
     client.request<CollectionSchema[]>('GET', '/collections', { query: { exclude_fields: 'fields' }, signal }),
   collection: (client: TypesenseClient, name: string, signal?: AbortSignal) =>
     client.request<CollectionSchema>('GET', `/collections/${encodeURIComponent(name)}`, { signal }),
+  keys: (client: TypesenseClient, signal?: AbortSignal) =>
+    client.request<{ keys: ApiKey[] }>('GET', '/keys', { signal }).then((response) => response.keys),
+  createKey: (client: TypesenseClient, input: ApiKeyInput) => client.request<ApiKey>('POST', '/keys', { body: input }),
+  deleteKey: (client: TypesenseClient, id: number) => client.request<{ id: number }>('DELETE', `/keys/${id}`),
 }

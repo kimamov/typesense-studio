@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RememberApiKeyField } from '@/components/api-key-dialogs'
 import { useErrorMessage } from '@/hooks/use-typesense'
 import { api } from '@/lib/typesense/api'
-import { createClient, isDesktop } from '@/lib/typesense/client'
+import { createClient, isDesktop, isKeyRejected } from '@/lib/typesense/client'
 import type { Connection, ConnectionInput } from '@/lib/typesense/types'
 import { useApiKey } from '@/stores/connections'
 
@@ -76,7 +76,8 @@ function ConnectionForm({
   const { t } = useTranslation()
   const errorMessage = useErrorMessage()
   const [values, setValues] = useState<ConnectionInput>(initial)
-  const [testing, setTesting] = useState(false)
+  const [busy, setBusy] = useState<'test' | 'save' | null>(null)
+  const [keyRejected, setKeyRejected] = useState(false)
 
   const set = <K extends keyof ConnectionInput>(key: K, value: ConnectionInput[K]) =>
     setValues((v) => ({ ...v, [key]: value }))
@@ -89,20 +90,38 @@ function ConnectionForm({
   })
 
   const testConnection = async () => {
-    setTesting(true)
+    setBusy('test')
     try {
-      const debug = await api.debug(createClient({ ...withDefaults(), id: 'test' }, values.apiKey))
+      const client = createClient({ ...withDefaults(), id: 'test' }, values.apiKey)
+      await api.keys(client)
+      const debug = await api.debug(client)
       toast.success(t('connections.testOk', { version: debug.version }))
     } catch (error) {
+      setKeyRejected(isKeyRejected(error))
       toast.error(t('connections.testFailed', { message: errorMessage(error) }))
     } finally {
-      setTesting(false)
+      setBusy(null)
     }
   }
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: SubmitEvent) => {
     event.preventDefault()
-    onSave(withDefaults())
+    const input = withDefaults()
+    if (input.apiKey) {
+      setBusy('save')
+      try {
+        await api.keys(createClient({ ...input, id: 'check' }, input.apiKey))
+      } catch (error) {
+        // Only a rejected key blocks saving; an unreachable server can still be saved and fixed later.
+        if (isKeyRejected(error)) {
+          setKeyRejected(true)
+          return
+        }
+      } finally {
+        setBusy(null)
+      }
+    }
+    onSave(input)
   }
 
   return (
@@ -155,8 +174,13 @@ function ConnectionForm({
           autoComplete="off"
           placeholder={isEdit ? t('connections.fields.apiKeyKeep') : undefined}
           value={values.apiKey}
-          onChange={(e) => set('apiKey', e.target.value)}
+          aria-invalid={keyRejected || undefined}
+          onChange={(e) => {
+            set('apiKey', e.target.value)
+            setKeyRejected(false)
+          }}
         />
+        {keyRejected && <p className="text-xs text-destructive">{t('errors.unauthorized')}</p>}
         <RememberApiKeyField checked={values.rememberApiKey} onChange={(checked) => set('rememberApiKey', checked)} />
       </div>
       <div className="grid gap-2">
@@ -187,14 +211,16 @@ function ConnectionForm({
         </div>
       )}
       <DialogFooter className="sm:justify-between">
-        <Button type="button" variant="outline" disabled={testing || !values.host || !values.apiKey} onClick={testConnection}>
-          {testing ? t('common.loading') : t('connections.test')}
+        <Button type="button" variant="outline" disabled={!!busy || !values.host || !values.apiKey} onClick={testConnection}>
+          {busy === 'test' ? t('common.loading') : t('connections.test')}
         </Button>
         <div className="flex gap-2">
           <Button type="button" variant="ghost" onClick={onCancel}>
             {t('common.cancel')}
           </Button>
-          <Button type="submit">{t('common.save')}</Button>
+          <Button type="submit" disabled={!!busy}>
+            {busy === 'save' ? t('common.loading') : t('common.save')}
+          </Button>
         </div>
       </DialogFooter>
     </form>

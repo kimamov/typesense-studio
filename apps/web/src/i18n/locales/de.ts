@@ -65,6 +65,7 @@ export const de: Messages = {
     status: 'Status',
     data: 'Daten',
     collections: 'Collections',
+    apiKeys: 'API-Keys',
     switchConnection: 'Verbindung wechseln',
     manageConnections: 'Verbindungen verwalten',
   },
@@ -131,11 +132,59 @@ export const de: Messages = {
     copied: 'Schema in die Zwischenablage kopiert',
     copyFailed: 'Kein Zugriff auf die Zwischenablage',
   },
+  apiKeys: {
+    title: 'API-Keys',
+    description:
+      'Auf diesem Server gespeicherte Keys. Der Key dieser Verbindung und der Bootstrap-Key, mit dem Typesense gestartet wurde, werden nicht angezeigt.',
+    create: 'Key erstellen',
+    createDescription: 'Typesense zeigt den vollständigen Key nur einmal, direkt nach dem Erstellen.',
+    empty: 'Dieser Server hat keine weiteren API-Keys.',
+    descriptionField: 'Beschreibung',
+    key: 'Key',
+    actions: 'Aktionen',
+    collections: 'Collections',
+    expires: 'Läuft ab',
+    never: 'Nie',
+    expired: 'abgelaufen',
+    rowActions: 'Zeilenaktionen',
+    confirmDelete: 'Den API-Key „{{name}}“ löschen? Apps, die ihn nutzen, verlieren sofort den Zugriff.',
+    deleted: 'API-Key gelöscht',
+    formTab: 'Formular',
+    type: 'Key-Typ',
+    types: {
+      admin: 'Admin-Key',
+      search: 'Nur-Suche-Key',
+      custom: 'Benutzerdefiniert',
+    },
+    typeHints: {
+      admin:
+        'Aktionen „*“ auf Collections „*“: voller Zugriff, auch auf die Key-Verwaltung. Kann sich bei Typesense Studio anmelden. Geheim halten.',
+      search:
+        'Aktion „documents:search“ auf den angegebenen Collections: darf nur suchen. Kann im Frontend genutzt werden; kann sich nicht bei Typesense Studio anmelden.',
+      custom:
+        'Beliebige Kombination von Aktionen, z. B. „documents:*“ oder „collections:list“. Nur Keys mit „*“ oder „keys:*“ können sich bei Typesense Studio anmelden.',
+    },
+    actionsHint: 'Kommagetrennt, z. B. „*“, „documents:search“ oder „collections:*“.',
+    collectionsHint: 'Kommagetrennte Collection-Namen oder reguläre Ausdrücke, z. B. „products, org_.*“; „*“ für alle.',
+    expiresHint: 'Optional. Ohne Datum läuft der Key nie ab.',
+    insertExample: 'Beispiel einfügen:',
+    jsonHint:
+      'Body von POST /keys. Ein Admin-Key hat "actions": ["*"], ein Nur-Suche-Key "actions": ["documents:search"]. "description", "actions" und "collections" sind Pflicht.',
+    invalidJson: 'Ungültiges JSON: {{message}}',
+    createdTitle: 'API-Key erstellt',
+    copyNowTitle: 'Key jetzt kopieren',
+    copyNow: 'Typesense zeigt ihn nicht noch einmal. Geht er verloren, lösche ihn und erstelle einen neuen.',
+    copied: 'Key in die Zwischenablage kopiert',
+    createdAdminHint: 'Mit diesem Admin-Key kannst du dich bei Typesense Studio anmelden.',
+    createdOtherHint: 'Ohne „*“ oder „keys:*“ kann sich dieser Key nicht bei Typesense Studio anmelden.',
+    done: 'Fertig',
+  },
   errors: {
     title: 'Etwas ist schiefgelaufen',
     network:
       'Der Server ist nicht erreichbar. Prüfe Host und Port oder stelle den Verbindungsmodus auf „Über Proxy“, falls der Server kein CORS erlaubt.',
-    unauthorized: 'Der API-Key wurde vom Server abgelehnt.',
+    unauthorized:
+      'Der API-Key ist ungültig oder hat keine Admin-Rechte. Typesense Studio braucht einen Key mit der Aktion „*“ oder mindestens „keys:*“.',
     reenterApiKey: 'API-Key erneut eingeben',
   },
 }
