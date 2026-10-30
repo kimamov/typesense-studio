@@ -1,4 +1,5 @@
-import type { TypesenseClient } from './client'
+import { TypesenseError, type TypesenseClient } from './client'
+import type { SearchParams, SearchResponse } from './search'
 import type { ApiKey, ApiKeyInput, CollectionSchema, DebugInfo, HealthInfo, Metrics, Stats } from './types'
 
 export const api = {
@@ -18,4 +19,20 @@ export const api = {
     client.request<{ keys: ApiKey[] }>('GET', '/keys', { signal }).then((response) => response.keys),
   createKey: (client: TypesenseClient, input: ApiKeyInput) => client.request<ApiKey>('POST', '/keys', { body: input }),
   deleteKey: (client: TypesenseClient, id: number) => client.request<{ id: number }>('DELETE', `/keys/${id}`),
+  search: (client: TypesenseClient, collection: string, params: SearchParams, signal?: AbortSignal) =>
+    client.request<SearchResponse>('GET', `/collections/${encodeURIComponent(collection)}/documents/search`, {
+      query: params,
+      signal,
+    }),
+  /** Several searches in one request; a failed search rejects the whole call. */
+  multiSearch: async (client: TypesenseClient, searches: (SearchParams & { collection: string })[], signal?: AbortSignal) => {
+    const { results } = await client.request<{ results: (SearchResponse & { code?: number; error?: string })[] }>(
+      'POST',
+      '/multi_search',
+      { body: { searches }, signal },
+    )
+    const failed = results.find((result) => result.error)
+    if (failed) throw new TypesenseError(failed.code ?? 400, failed.error ?? 'Search failed')
+    return results as SearchResponse[]
+  },
 }

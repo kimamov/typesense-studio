@@ -1,9 +1,11 @@
 import { createHashHistory, createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router'
 import { ApiKeysPage } from '@/pages/api-keys-page'
+import { parseDocumentSearch } from '@/lib/typesense/search'
 import { CollectionPage } from '@/pages/collection-page'
 import { CollectionsPage } from '@/pages/collections-page'
 import { ConnectionLayout } from '@/pages/connection-layout'
 import { ConnectionsPage } from '@/pages/connections-page'
+import { SearchPage } from '@/pages/search-page'
 import { ServerStatusPage } from '@/pages/server-status-page'
 
 const rootRoute = createRootRoute({ component: Outlet })
@@ -36,11 +38,21 @@ const collectionRoute = createRoute({
   },
 })
 
+const searchRoute = createRoute({
+  getParentRoute: () => connectionRoute,
+  path: '/collections/$name/search',
+  validateSearch: parseDocumentSearch,
+  component: function SearchRoute() {
+    const { name } = searchRoute.useParams()
+    return <SearchPage name={name} search={searchRoute.useSearch()} />
+  },
+})
+
 const apiKeysRoute = createRoute({ getParentRoute: () => connectionRoute, path: '/keys', component: ApiKeysPage })
 
 const routeTree = rootRoute.addChildren([
   connectionsRoute,
-  connectionRoute.addChildren([statusRoute, apiKeysRoute, collectionsRoute, collectionRoute]),
+  connectionRoute.addChildren([statusRoute, apiKeysRoute, collectionsRoute, collectionRoute, searchRoute]),
 ])
 
 // Hash history works unchanged on static hosting, under a sub-path and inside the desktop shell.
