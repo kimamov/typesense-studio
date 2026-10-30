@@ -10,6 +10,14 @@ export class TypesenseError extends Error {
   }
 }
 
+/**
+ * Studio only accepts keys that may manage keys (`GET /keys`). Typesense answers 401 both for
+ * unknown keys and for keys without that permission, e.g. search-only keys.
+ */
+export function isKeyRejected(error: unknown): boolean {
+  return error instanceof TypesenseError && error.status === 401
+}
+
 type Query = Record<string, string | number | boolean | undefined>
 
 export interface RequestOptions {

@@ -6,11 +6,12 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { QueryError } from '@/components/query-error'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useActiveConnection } from '@/hooks/use-active-connection'
+import { copyText } from '@/lib/clipboard'
 import { formatDate, formatNumber } from '@/lib/format'
 import { api } from '@/lib/typesense/api'
 import { TypesenseError } from '@/lib/typesense/client'
@@ -29,12 +30,14 @@ export function CollectionPage({ name }: { name: string }) {
   })
 
   const backLink = (
-    <Button variant="ghost" size="sm" className="-ml-2 w-fit" asChild>
-      <Link to="/c/$connectionId/collections" params={{ connectionId: connection.id }}>
-        <ArrowLeftIcon />
-        {t('nav.collections')}
-      </Link>
-    </Button>
+    <Link
+      to="/c/$connectionId/collections"
+      params={{ connectionId: connection.id }}
+      className={buttonVariants({ variant: 'ghost', size: 'sm', className: '-ml-2 w-fit' })}
+    >
+      <ArrowLeftIcon />
+      {t('nav.collections')}
+    </Link>
   )
 
   if (collection.error instanceof TypesenseError && collection.error.status === 404) {
@@ -91,7 +94,7 @@ export function CollectionPage({ name }: { name: string }) {
           </dl>
 
           <Tabs defaultValue="fields">
-            <TabsList>
+            <TabsList activateOnFocus>
               <TabsTrigger value="fields">{t('collection.fieldsTab', { count: schema.fields.length })}</TabsTrigger>
               <TabsTrigger value="json">JSON</TabsTrigger>
             </TabsList>
@@ -141,29 +144,6 @@ export function CollectionPage({ name }: { name: string }) {
       )}
     </>
   )
-}
-
-/**
- * The Clipboard API only exists in secure contexts, so a self-hosted dashboard on plain http
- * (e.g. http://192.168.1.10) falls back to the legacy copy command.
- */
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text)
-    return true
-  } catch {
-    const textarea = document.createElement('textarea')
-    textarea.value = text
-    textarea.style.position = 'fixed'
-    textarea.style.opacity = '0'
-    document.body.append(textarea)
-    textarea.select()
-    try {
-      return document.execCommand('copy')
-    } finally {
-      textarea.remove()
-    }
-  }
 }
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {

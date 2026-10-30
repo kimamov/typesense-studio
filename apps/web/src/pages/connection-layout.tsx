@@ -5,20 +5,23 @@ import {
   CheckIcon,
   ChevronsUpDownIcon,
   DatabaseIcon,
+  KeyRoundIcon,
   LibraryIcon,
   SettingsIcon,
   SlidersHorizontalIcon,
   type LucideIcon,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ApiKeyDialog, ConnectionSettingsDialog } from '@/components/api-key-dialogs'
 import { PreferencesMenu } from '@/components/preferences-menu'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -40,12 +43,13 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { ActiveConnectionContext } from '@/hooks/use-active-connection'
-import { createClient, nodeUrl } from '@/lib/typesense/client'
+import { api } from '@/lib/typesense/api'
+import { createClient, isKeyRejected, nodeUrl } from '@/lib/typesense/client'
 import type { Connection } from '@/lib/typesense/types'
 import { useApiKey, useConnection, useConnections } from '@/stores/connections'
 
 interface NavItem {
-  to: '/c/$connectionId' | '/c/$connectionId/collections'
+  to: '/c/$connectionId' | '/c/$connectionId/keys' | '/c/$connectionId/collections'
   label: string
   icon: LucideIcon
 }
@@ -64,25 +68,36 @@ export function ConnectionLayout({ connectionId }: { connectionId: string }) {
         : null,
     [connection, apiKey, forgetApiKey],
   )
+  // Studio needs an admin key; a stored key may be a search-only key or may have lost its rights.
+  const keys = useQuery({
+    queryKey: [connectionId, 'keys'],
+    queryFn: ({ signal }) => api.keys(active!.client, signal),
+    enabled: !!active,
+  })
 
   if (connection && !active) return <ApiKeyDialog connection={connection} />
+  if (connection && isKeyRejected(keys.error)) return <ApiKeyDialog key="rejected" connection={connection} rejected />
 
   if (!active) {
     return (
       <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-4 text-center">
         <p className="text-muted-foreground">{t('connections.notFound')}</p>
-        <Button variant="outline" asChild>
-          <Link to="/">
-            <ArrowLeftIcon />
-            {t('connections.back')}
-          </Link>
-        </Button>
+        <Link to="/" className={buttonVariants({ variant: 'outline' })}>
+          <ArrowLeftIcon />
+          {t('connections.back')}
+        </Link>
       </div>
     )
   }
 
   const groups: { label: string; items: NavItem[] }[] = [
-    { label: t('nav.server'), items: [{ to: '/c/$connectionId', label: t('nav.status'), icon: ActivityIcon }] },
+    {
+      label: t('nav.server'),
+      items: [
+        { to: '/c/$connectionId', label: t('nav.status'), icon: ActivityIcon },
+        { to: '/c/$connectionId/keys', label: t('nav.apiKeys'), icon: KeyRoundIcon },
+      ],
+    },
     { label: t('nav.data'), items: [{ to: '/c/$connectionId/collections', label: t('nav.collections'), icon: LibraryIcon }] },
   ]
 
@@ -101,14 +116,12 @@ export function ConnectionLayout({ connectionId }: { connectionId: string }) {
                   {group.items.map((item) => (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton
-                        asChild
+                        render={<Link to={item.to} params={{ connectionId }} />}
                         // The status page is the index route, so only it needs an exact match.
                         isActive={!!matchRoute({ to: item.to, params: { connectionId }, fuzzy: item.to !== '/c/$connectionId' })}
                       >
-                        <Link to={item.to} params={{ connectionId }}>
-                          <item.icon />
-                          <span>{item.label}</span>
-                        </Link>
+                        <item.icon />
+                        <span>{item.label}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
@@ -117,14 +130,12 @@ export function ConnectionLayout({ connectionId }: { connectionId: string }) {
             ))}
           </SidebarContent>
           <SidebarFooter>
-            <div className="flex items-center justify-between">
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/">
-                  <SettingsIcon />
-                  {t('nav.manageConnections')}
-                </Link>
-              </Button>
+            <div className="flex items-center justify-between flex-wrap">
               <PreferencesMenu />
+              <Link to="/" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+                <SettingsIcon />
+                {t('nav.manageConnections')}
+              </Link>
             </div>
           </SidebarFooter>
         </Sidebar>
@@ -163,29 +174,29 @@ function ConnectionSwitcher({ current }: { current: Connection }) {
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <DatabaseIcon className="size-4" />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{current.name}</span>
-                <span className="truncate font-mono text-xs text-muted-foreground">{nodeUrl(current)}</span>
-              </div>
-              <ChevronsUpDownIcon className="ml-auto" />
-            </SidebarMenuButton>
+          <DropdownMenuTrigger render={<SidebarMenuButton size="lg" className="data-popup-open:bg-sidebar-accent" />}>
+            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+              <DatabaseIcon className="size-4" />
+            </div>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">{current.name}</span>
+              <span className="truncate font-mono text-xs text-muted-foreground">{nodeUrl(current)}</span>
+            </div>
+            <ChevronsUpDownIcon className="ml-auto" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-(--radix-dropdown-menu-trigger-width) min-w-56">
-            <DropdownMenuLabel>{t('nav.switchConnection')}</DropdownMenuLabel>
-            {connections.map((c) => (
-              <DropdownMenuItem key={c.id} onSelect={() => void navigate({ to: '/c/$connectionId', params: { connectionId: c.id } })}>
-                <span className="truncate">{c.name}</span>
-                {c.tag && <Badge variant="outline">{c.tag}</Badge>}
-                {c.id === current.id && <CheckIcon className="ml-auto" />}
-              </DropdownMenuItem>
-            ))}
+          <DropdownMenuContent align="start" className="w-(--anchor-width) min-w-56">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>{t('nav.switchConnection')}</DropdownMenuLabel>
+              {connections.map((c) => (
+                <DropdownMenuItem key={c.id} onClick={() => void navigate({ to: '/c/$connectionId', params: { connectionId: c.id } })}>
+                  <span className="truncate">{c.name}</span>
+                  {c.tag && <Badge variant="outline">{c.tag}</Badge>}
+                  {c.id === current.id && <CheckIcon className="ml-auto" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => void navigate({ to: '/' })}>
+            <DropdownMenuItem onClick={() => void navigate({ to: '/' })}>
               <SettingsIcon />
               {t('nav.manageConnections')}
             </DropdownMenuItem>
