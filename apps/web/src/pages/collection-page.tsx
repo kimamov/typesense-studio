@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { QueryError } from '@/components/query-error'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -29,12 +29,14 @@ export function CollectionPage({ name }: { name: string }) {
   })
 
   const backLink = (
-    <Button variant="ghost" size="sm" className="-ml-2 w-fit" asChild>
-      <Link to="/c/$connectionId/collections" params={{ connectionId: connection.id }}>
-        <ArrowLeftIcon />
-        {t('nav.collections')}
-      </Link>
-    </Button>
+    <Link
+      to="/c/$connectionId/collections"
+      params={{ connectionId: connection.id }}
+      className={buttonVariants({ variant: 'ghost', size: 'sm', className: '-ml-2 w-fit' })}
+    >
+      <ArrowLeftIcon />
+      {t('nav.collections')}
+    </Link>
   )
 
   if (collection.error instanceof TypesenseError && collection.error.status === 404) {
@@ -91,7 +93,7 @@ export function CollectionPage({ name }: { name: string }) {
           </dl>
 
           <Tabs defaultValue="fields">
-            <TabsList>
+            <TabsList activateOnFocus>
               <TabsTrigger value="fields">{t('collection.fieldsTab', { count: schema.fields.length })}</TabsTrigger>
               <TabsTrigger value="json">JSON</TabsTrigger>
             </TabsList>

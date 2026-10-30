@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { ConnectionFormDialog } from '@/components/connection-form-dialog'
 import { PreferencesMenu } from '@/components/preferences-menu'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { effectiveTransport, nodeUrl } from '@/lib/typesense/client'
 import type { Connection } from '@/lib/typesense/types'
@@ -90,11 +90,9 @@ export function ConnectionsPage() {
                     {connection.tag && <Badge variant="secondary">{connection.tag}</Badge>}
                     <Badge variant="outline">{t(`connections.transport.${effectiveTransport(connection)}`)}</Badge>
                   </div>
-                  <Button size="sm" asChild>
-                    <Link to="/c/$connectionId" params={{ connectionId: connection.id }}>
-                      {t('connections.open')}
-                    </Link>
-                  </Button>
+                  <Link to="/c/$connectionId" params={{ connectionId: connection.id }} className={buttonVariants({ size: 'sm' })}>
+                    {t('connections.open')}
+                  </Link>
                 </CardFooter>
               </Card>
             ))}
