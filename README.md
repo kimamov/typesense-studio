@@ -34,6 +34,7 @@ A demo Typesense on http://localhost:8108 (API key `demo-key`):
 
 ```bash
 docker compose up -d
+pnpm seed         # adds a `demo_books` collection (3,000 documents) for trying search and filters
 ```
 
 ## Connection modes

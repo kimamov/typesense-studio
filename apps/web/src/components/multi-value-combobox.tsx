@@ -12,6 +12,7 @@ import {
   ComboboxValue,
   useComboboxAnchor,
 } from '@/components/ui/combobox'
+import { isEscapeClear } from '@/lib/combobox'
 
 interface MultiValueComboboxProps {
   id: string
@@ -60,7 +61,8 @@ export function MultiValueCombobox({ id, values, onChange, suggestions, invalid 
       items={items}
       filter={null}
       value={values}
-      onValueChange={(next: string[]) => {
+      onValueChange={(next: string[], details) => {
+        if (isEscapeClear(details)) return
         onChange(next)
         setQuery('')
       }}

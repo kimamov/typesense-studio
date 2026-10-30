@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useMatchRoute, useNavigate, useParams } from '@tanstack/react-router'
-import { BracesIcon } from 'lucide-react'
+import { BracesIcon, SearchIcon } from 'lucide-react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -13,11 +13,15 @@ import {
 } from '@/components/ui/combobox'
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
 import { useActiveConnection } from '@/hooks/use-active-connection'
+import { isEscapeClear } from '@/lib/combobox'
 import { api } from '@/lib/typesense/api'
 import { setLastCollection, useLastCollection } from '@/stores/last-collection'
 
 /** Pages that belong to one collection; switching collections keeps the current one. */
-const COLLECTION_PAGES = [{ to: '/c/$connectionId/collections/$name', label: 'nav.schema', icon: BracesIcon }] as const
+const COLLECTION_PAGES = [
+  { to: '/c/$connectionId/collections/$name/search', label: 'nav.search', icon: SearchIcon },
+  { to: '/c/$connectionId/collections/$name', label: 'nav.schema', icon: BracesIcon },
+] as const
 
 /** Sidebar group with a collection switcher and the pages of the selected collection. */
 export function CollectionNav() {
@@ -57,7 +61,7 @@ export function CollectionNav() {
       <Combobox
         items={names ?? []}
         value={selected}
-        onValueChange={(name: string | null) => name && open(name)}
+        onValueChange={(name: string | null, details) => !isEscapeClear(details) && name && open(name)}
         autoHighlight
       >
         <ComboboxInput className="mb-1 w-full" placeholder={t('nav.selectCollection')} aria-label={t('nav.collection')} />
