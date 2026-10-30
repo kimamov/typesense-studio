@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { SearchIcon, SearchXIcon } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { QueryError } from '@/components/query-error'
 import { FacetBar } from '@/components/search/facet-filters'
@@ -17,8 +17,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import { useActiveConnection } from '@/hooks/use-active-connection'
 import { formatNumber } from '@/lib/format'
 import { api } from '@/lib/typesense/api'
@@ -38,6 +40,9 @@ import {
   type SearchParams,
 } from '@/lib/typesense/search'
 import type { CollectionSchema } from '@/lib/typesense/types'
+
+// CodeMirror is only loaded once JSON mode is opened.
+const JsonEditor = lazy(() => import('@/components/json-editor'))
 
 const DEFAULT_PER_PAGE = 25
 const DEBOUNCE_MS = 300
@@ -91,17 +96,33 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
     update({ filters: Object.keys(next).length ? next : undefined })
   }
 
+  const jsonMode = search.json !== undefined
   const base = { collection: schema.name, q: search.q || '*', query_by: queryBy }
+  // What the form searches for, as Typesense parameters: the starting point of JSON mode.
+  const formParams = { q: base.q, query_by: queryBy, filter_by: buildFilterBy(filters), sort_by: search.sort }
   // Value facets with an active filter get their counts from a search without their own filter, so the
   // other values stay selectable (disjunctive faceting).
-  const ownCounts = facets.filter((f) => f.kind === 'value' && isActive(filters[f.name]))
+  const ownCounts = jsonMode ? [] : facets.filter((f) => f.kind === 'value' && isActive(filters[f.name]))
   const queryKey = [connection.id, 'collections', schema.name, 'search', search]
   const results = useQuery({
     queryKey,
     queryFn: ({ signal }) =>
       api.multiSearch(
         client,
-        [
+        jsonMode
+          ? [
+              {
+                q: '*',
+                ...(search.json as Partial<SearchParams>),
+                // Paging is controlled below the results, and highlights must use the tags HitCard understands.
+                collection: schema.name,
+                page,
+                per_page: perPage,
+                highlight_start_tag: HIGHLIGHT_START,
+                highlight_end_tag: HIGHLIGHT_END,
+              },
+            ]
+          : [
           {
             ...base,
             filter_by: buildFilterBy(filters),
@@ -120,13 +141,16 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
             max_facet_values: FACET_VALUES,
             per_page: 0,
           })),
-        ],
+            ],
         signal,
       ),
     placeholderData: keepPreviousData,
   })
 
-  const [main, ...own] = results.data ?? []
+  const [main, ...rest] = results.data ?? []
+  // While the next search loads, the previous results are shown; their extra searches may belong to other
+  // filtered facets, so they are only used once they match the current search.
+  const own = results.isPlaceholderData ? [] : rest
   const counts: Record<string, FacetCount | undefined> = Object.fromEntries([
     ...(main?.facet_counts ?? []).map((c) => [c.field_name, c] as const),
     ...own.map((r, i) => [ownCounts[i].name, r.facet_counts?.[0]] as const),
@@ -160,8 +184,30 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
     ),
   }
 
+  const applyJson = (json: Record<string, unknown>) => {
+    // Running the same search again only refreshes it, since the URL would not change.
+    if (JSON.stringify(json) === JSON.stringify(search.json)) void results.refetch()
+    else update({ json })
+  }
+
   return (
     <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex items-center justify-end gap-2">
+        <Label htmlFor="search-json-mode" className="font-normal text-muted-foreground">
+          {t('search.jsonMode')}
+        </Label>
+        <Switch
+          id="search-json-mode"
+          checked={jsonMode}
+          // Entering JSON mode starts from the form's search; leaving it keeps the form as it was.
+          onCheckedChange={(checked) => update({ json: checked ? JSON.parse(JSON.stringify(formParams)) : undefined })}
+        />
+      </div>
+
+      {jsonMode ? (
+        <JsonSearchInput value={search.json ?? {}} onApply={applyJson} />
+      ) : (
+        <>
         <div className="flex flex-wrap gap-2">
           <SearchBox value={search.q ?? ''} disabled={texts.length === 0} onChange={(q, replace) => update({ q: q || undefined }, replace)} />
           <DropdownMenu>
@@ -219,6 +265,9 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
           </div>
         </div>
 
+        </>
+      )}
+
         {results.error ? (
           <QueryError error={results.error} onRetry={() => void results.refetch()} />
         ) : !main ? (
@@ -230,7 +279,7 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
           <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-16 text-center">
             <SearchXIcon className="size-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">{main.out_of === 0 ? t('search.emptyCollection') : t('search.noResults')}</p>
-            {activeFilters.length > 0 && (
+            {!jsonMode && activeFilters.length > 0 && (
               <Button variant="outline" size="sm" onClick={() => update({ filters: undefined })}>
                 {t('search.clearFilters')}
               </Button>
@@ -272,6 +321,65 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
             </div>
           </>
         )}
+    </div>
+  )
+}
+
+/** JSON editor for raw Typesense search parameters, applied with the button or ⌘/Ctrl+Enter. */
+function JsonSearchInput({ value, onApply }: { value: Record<string, unknown>; onApply: (json: Record<string, unknown>) => void }) {
+  const { t } = useTranslation()
+  const formatted = JSON.stringify(value, null, 2)
+  const [text, setText] = useState(formatted)
+  const [synced, setSynced] = useState(formatted)
+  const [submitted, setSubmitted] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // Follows the URL when it changes from outside (switching modes, back button). A change that is the
+  // search just submitted here keeps the user's own text and formatting.
+  if (formatted !== synced) {
+    setSynced(formatted)
+    if (formatted !== submitted) setText(formatted)
+  }
+
+  const apply = () => {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(text)
+    } catch (e) {
+      return setError(t('search.invalidJson', { message: e instanceof Error ? e.message : String(e) }))
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return setError(t('search.jsonObject'))
+    setError(null)
+    setSubmitted(JSON.stringify(parsed, null, 2))
+    onApply(parsed as Record<string, unknown>)
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Suspense fallback={<Skeleton className="h-40" />}>
+        <JsonEditor
+          value={text}
+          onChange={(next) => {
+            setText(next)
+            setError(null)
+          }}
+          onSubmit={apply}
+          aria-label={t('search.jsonLabel')}
+        />
+      </Suspense>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        {error ? (
+          <p className="text-xs text-destructive" role="alert">
+            {error}
+          </p>
+        ) : (
+          <p className="max-w-xl text-xs text-muted-foreground">{t('search.jsonHint')}</p>
+        )}
+        <Button size="sm" onClick={apply}>
+          <SearchIcon />
+          {t('search.run')}
+        </Button>
+      </div>
     </div>
   )
 }
