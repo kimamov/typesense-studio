@@ -33,6 +33,8 @@ export function CollectionPage({ name }: { name: string }) {
     <Link
       to="/c/$connectionId/collections"
       params={{ connectionId: connection.id }}
+      // A link back to the parent page is not the current page.
+      activeOptions={{ exact: true }}
       className={buttonVariants({ variant: 'ghost', size: 'sm', className: '-ml-2 w-fit' })}
     >
       <ArrowLeftIcon />

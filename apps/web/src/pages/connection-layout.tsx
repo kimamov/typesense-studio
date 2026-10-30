@@ -117,8 +117,9 @@ export function ConnectionLayout({ connectionId }: { connectionId: string }) {
                   {group.items.map((item) => (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton
-                        render={<Link to={item.to} params={{ connectionId }} />}
-                        // Exact matches only: a collection's pages are highlighted in the collection group.
+                        // Exact matches only, for the highlight and for `aria-current`: a collection's pages are
+                        // highlighted in the collection group, and `/c/:id` is a prefix of every page.
+                        render={<Link to={item.to} params={{ connectionId }} activeOptions={{ exact: true, includeSearch: false }} />}
                         isActive={!!matchRoute({ to: item.to, params: { connectionId } })}
                       >
                         <item.icon />
