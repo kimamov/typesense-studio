@@ -11,7 +11,7 @@ export default defineConfig({
     alias: { '@': path.resolve(import.meta.dirname, './src') },
   },
   server: {
-    // During development the Hono server (apps/server) provides the CORS proxy.
+    // During development the Node server (apps/server) provides the CORS proxy.
     proxy: { '/proxy': 'http://localhost:8787' },
   },
 })
