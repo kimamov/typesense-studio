@@ -1,6 +1,6 @@
 import { TypesenseError, type TypesenseClient } from './client'
 import type { SearchParams, SearchResponse } from './search'
-import type { ApiKey, ApiKeyInput, CollectionSchema, DebugInfo, HealthInfo, Metrics, Stats } from './types'
+import type { ApiKey, ApiKeyInput, CollectionSchema, DebugInfo, HealthInfo, Metrics, SchemaUpdate, Stats } from './types'
 
 export const api = {
   health: (client: TypesenseClient, signal?: AbortSignal) =>
@@ -15,6 +15,8 @@ export const api = {
     client.request<CollectionSchema[]>('GET', '/collections', { query: { exclude_fields: 'fields' }, signal }),
   collection: (client: TypesenseClient, name: string, signal?: AbortSignal) =>
     client.request<CollectionSchema>('GET', `/collections/${encodeURIComponent(name)}`, { signal }),
+  updateCollection: (client: TypesenseClient, name: string, body: SchemaUpdate) =>
+    client.request<SchemaUpdate>('PATCH', `/collections/${encodeURIComponent(name)}`, { body }),
   keys: (client: TypesenseClient, signal?: AbortSignal) =>
     client.request<{ keys: ApiKey[] }>('GET', '/keys', { signal }).then((response) => response.keys),
   createKey: (client: TypesenseClient, input: ApiKeyInput) => client.request<ApiKey>('POST', '/keys', { body: input }),

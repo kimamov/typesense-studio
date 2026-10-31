@@ -37,6 +37,8 @@ docker compose up -d
 pnpm seed         # adds a `demo_books` collection (3,000 documents) for trying search and filters
 ```
 
+The documents also have a `publisher` key that is not in the schema. Adding it as a field on the schema page makes its values searchable.
+
 ## Connection modes
 
 - **Direct** — the browser calls Typesense. Works when the server allows CORS for the dashboard's origin (Typesense's default).
