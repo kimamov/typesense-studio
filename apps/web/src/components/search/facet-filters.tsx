@@ -117,7 +117,7 @@ function describeFilter(value: FilterValue, t: ReturnType<typeof useTranslation>
 
 function FacetWidget({ facet, value, counts, onChange, searchValues, queryKey }: WidgetProps) {
   const facetCounts = counts[facet.name]
-  const set = (next: FilterValue | undefined) => onChange(facet.name, next && isActive(next) ? next : undefined)
+  const set = (next: FilterValue | undefined) => onChange(facet.name, isActive(next) ? next : undefined)
   if (facet.kind === 'bool') {
     return <BoolFacet value={typeof value === 'boolean' ? value : undefined} counts={facetCounts?.counts ?? []} onChange={set} />
   }
