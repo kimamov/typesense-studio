@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { ArrowLeftIcon, CopyIcon, SearchXIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { ArrowLeftIcon, CopyIcon, PencilIcon, SearchXIcon } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { QueryError } from '@/components/query-error'
+import { SchemaEditor } from '@/components/schema/schema-editor'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -18,12 +19,13 @@ import { TypesenseError } from '@/lib/typesense/client'
 import type { CollectionField } from '@/lib/typesense/types'
 
 /** Flags worth calling out; `index` is shown only when it is off, since indexing is the default. */
-const FLAGS = ['facet', 'optional', 'sort', 'infix'] as const
+const FLAGS = ['facet', 'optional', 'sort', 'infix', 'stem'] as const
 
 export function CollectionPage({ name }: { name: string }) {
   const { t, i18n } = useTranslation()
   const lng = i18n.resolvedLanguage
   const { connection, client } = useActiveConnection()
+  const [editing, setEditing] = useState(false)
   const collection = useQuery({
     queryKey: [connection.id, 'collections', name],
     queryFn: ({ signal }) => api.collection(client, name, signal),
@@ -95,53 +97,63 @@ export function CollectionPage({ name }: { name: string }) {
             </Fact>
           </dl>
 
-          <Tabs defaultValue="fields">
-            <TabsList activateOnFocus>
-              <TabsTrigger value="fields">{t('collection.fieldsTab', { count: schema.fields.length })}</TabsTrigger>
-              <TabsTrigger value="json">JSON</TabsTrigger>
-            </TabsList>
+          {editing ? (
+            <SchemaEditor schema={schema} onDone={() => setEditing(false)} />
+          ) : (
+            <Tabs defaultValue="fields">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <TabsList activateOnFocus>
+                  <TabsTrigger value="fields">{t('collection.fieldsTab', { count: schema.fields.length })}</TabsTrigger>
+                  <TabsTrigger value="json">JSON</TabsTrigger>
+                </TabsList>
+                <Button variant="outline" onClick={() => setEditing(true)}>
+                  <PencilIcon />
+                  {t('schema.edit')}
+                </Button>
+              </div>
 
-            <TabsContent value="fields" className="rounded-xl border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('collection.field')}</TableHead>
-                    <TableHead>{t('collection.type')}</TableHead>
-                    <TableHead>{t('collection.flags')}</TableHead>
-                    <TableHead>{t('collection.locale')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {schema.fields.map((field) => (
-                    <TableRow key={field.name}>
-                      <TableCell>
-                        <FieldName name={field.name} />
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-mono">
-                          {field.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <FieldFlags field={field} />
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">{field.locale || <None />}</TableCell>
+              <TabsContent value="fields" className="rounded-xl border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('collection.field')}</TableHead>
+                      <TableHead>{t('collection.type')}</TableHead>
+                      <TableHead>{t('collection.flags')}</TableHead>
+                      <TableHead>{t('collection.locale')}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TabsContent>
+                  </TableHeader>
+                  <TableBody>
+                    {schema.fields.map((field) => (
+                      <TableRow key={field.name}>
+                        <TableCell>
+                          <FieldName name={field.name} />
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono">
+                            {field.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <FieldFlags field={field} />
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{field.locale || <None />}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TabsContent>
 
-            <TabsContent value="json" className="relative">
-              <Button variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => void copySchema()}>
-                <CopyIcon />
-                {t('collection.copy')}
-              </Button>
-              <pre className="max-h-[60vh] overflow-auto rounded-xl border bg-muted/40 p-4 font-mono text-xs">
-                {JSON.stringify(schema, null, 2)}
-              </pre>
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="json" className="relative">
+                <Button variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => void copySchema()}>
+                  <CopyIcon />
+                  {t('collection.copy')}
+                </Button>
+                <pre className="max-h-[60vh] overflow-auto rounded-xl border bg-muted/40 p-4 font-mono text-xs">
+                  {JSON.stringify(schema, null, 2)}
+                </pre>
+              </TabsContent>
+            </Tabs>
+          )}
         </>
       )}
     </>

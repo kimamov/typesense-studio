@@ -26,6 +26,7 @@ const schema = {
 const FIRST = ['Ada', 'Bruno', 'Clara', 'Daniel', 'Elif', 'Felix', 'Greta', 'Hugo', 'Ines', 'Jonas', 'Kira', 'Lars', 'Mira', 'Noah', 'Olga', 'Paul', 'Rosa', 'Sami', 'Tara', 'Uwe']
 const LAST = ['Adler', 'Berger', 'Conrad', 'Dietz', 'Ebert', 'Fuchs', 'Graf', 'Hahn', 'Jung', 'Keller', 'Lang', 'Moser', 'Nowak', 'Otto', 'Peters']
 const GENRES = ['Fantasy', 'Science Fiction', 'Mystery', 'Romance', 'History', 'Biography', 'Poetry', 'Travel']
+const PUBLISHERS = ['Northwind Press', 'Blue Harbor Books', 'Lantern House', 'Quill & Stone', 'Meridian']
 const WORDS = ['silent', 'river', 'empire', 'glass', 'winter', 'garden', 'shadow', 'harbor', 'clock', 'forest', 'letter', 'storm', 'mirror', 'island', 'journey', 'secret', 'light', 'stone', 'city', 'dream']
 
 // Small seeded PRNG (mulberry32), so the data is the same on every run.
@@ -50,6 +51,9 @@ const documents = Array.from({ length: COUNT }, (_, i) => ({
   rating: Math.round((1 + random() * 4) * 10) / 10,
   pages: 80 + Math.floor(random() * 800),
   in_stock: random() > 0.3,
+  // Stored but not in the schema, for trying schema editing: adding the field indexes these values.
+  // Taken from the index, not the PRNG, so the other values stay the same as before.
+  publisher: PUBLISHERS[i % PUBLISHERS.length],
 }))
 
 async function request(method: string, path: string, body?: string, contentType = 'application/json') {

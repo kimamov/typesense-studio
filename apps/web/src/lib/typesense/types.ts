@@ -61,6 +61,7 @@ export interface CollectionField {
   index?: boolean
   sort?: boolean
   infix?: boolean
+  stem?: boolean
   locale?: string
   [key: string]: unknown
 }
@@ -94,3 +95,10 @@ export interface ApiKey {
 
 export type ApiKeyInput = Pick<ApiKey, 'description' | 'actions' | 'collections'> &
   Partial<Pick<ApiKey, 'expires_at' | 'autodelete' | 'value'>>
+
+/** Body of `PATCH /collections/:name`: fields to add, `{ name, drop: true }` to remove one. */
+export interface SchemaUpdate {
+  fields?: (CollectionField | { name: string; drop: true })[]
+  metadata?: Record<string, unknown>
+  synonym_sets?: string[]
+}

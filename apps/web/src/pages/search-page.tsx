@@ -1,9 +1,10 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { SearchIcon, SearchXIcon } from 'lucide-react'
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { QueryError } from '@/components/query-error'
+import { LazyJsonEditor } from '@/components/lazy-json-editor'
 import { FacetBar } from '@/components/search/facet-filters'
 import { HitCard } from '@/components/search/hit-card'
 import { Pagination } from '@/components/search/pagination'
@@ -40,9 +41,6 @@ import {
   type SearchParams,
 } from '@/lib/typesense/search'
 import type { CollectionSchema } from '@/lib/typesense/types'
-
-// CodeMirror is only loaded once JSON mode is opened.
-const JsonEditor = lazy(() => import('@/components/json-editor'))
 
 const DEFAULT_PER_PAGE = 25
 const DEBOUNCE_MS = 300
@@ -82,7 +80,9 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
   const sorts = sortFields(schema)
   const searchIn = search.in?.filter((field) => texts.includes(field)) ?? []
   const queryBy = (searchIn.length ? searchIn : texts).join(',') || undefined
-  const filters = search.filters ?? {}
+  // Filters and sorting on fields the schema no longer has (dropped, or a stale URL) are ignored.
+  const filters = Object.fromEntries(Object.entries(search.filters ?? {}).filter(([name]) => facets.some((f) => f.name === name)))
+  const sort = search.sort && sorts.includes(search.sort.slice(0, search.sort.lastIndexOf(':'))) ? search.sort : undefined
   const page = search.page ?? 1
   const perPage = search.per_page ?? DEFAULT_PER_PAGE
 
@@ -99,7 +99,7 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
   const jsonMode = search.json !== undefined
   const base = { collection: schema.name, q: search.q || '*', query_by: queryBy }
   // What the form searches for, as Typesense parameters: the starting point of JSON mode.
-  const formParams = { q: base.q, query_by: queryBy, filter_by: buildFilterBy(filters), sort_by: search.sort }
+  const formParams = { q: base.q, query_by: queryBy, filter_by: buildFilterBy(filters), sort_by: sort }
   // Value facets with an active filter get their counts from a search without their own filter, so the
   // other values stay selectable (disjunctive faceting).
   const ownCounts = jsonMode ? [] : facets.filter((f) => f.kind === 'value' && isActive(filters[f.name]))
@@ -128,7 +128,7 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
             filter_by: buildFilterBy(filters),
             facet_by: facets.map((f) => f.name).join(',') || undefined,
             max_facet_values: FACET_VALUES,
-            sort_by: search.sort,
+            sort_by: sort,
             page,
             per_page: perPage,
             highlight_start_tag: HIGHLIGHT_START,
@@ -247,7 +247,7 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
           />
           <div className="ml-auto">
             <Select
-              value={search.sort ?? RELEVANCE}
+              value={sort ?? RELEVANCE}
               onValueChange={(sort) => update({ sort: sort === RELEVANCE ? undefined : (sort as string) })}
               items={sortItems}
             >
@@ -356,17 +356,15 @@ function JsonSearchInput({ value, onApply }: { value: Record<string, unknown>; o
 
   return (
     <div className="flex flex-col gap-2">
-      <Suspense fallback={<Skeleton className="h-40" />}>
-        <JsonEditor
-          value={text}
-          onChange={(next) => {
-            setText(next)
-            setError(null)
-          }}
-          onSubmit={apply}
-          aria-label={t('search.jsonLabel')}
-        />
-      </Suspense>
+      <LazyJsonEditor
+        value={text}
+        onChange={(next) => {
+          setText(next)
+          setError(null)
+        }}
+        onSubmit={apply}
+        aria-label={t('search.jsonLabel')}
+      />
       <div className="flex flex-wrap items-start justify-between gap-2">
         {error ? (
           <p className="text-xs text-destructive" role="alert">
