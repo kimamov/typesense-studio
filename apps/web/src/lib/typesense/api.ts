@@ -26,6 +26,11 @@ export const api = {
       query: params,
       signal,
     }),
+  deleteDocument: (client: TypesenseClient, collection: string, id: string) =>
+    client.request<Record<string, unknown>>(
+      'DELETE',
+      `/collections/${encodeURIComponent(collection)}/documents/${encodeURIComponent(id)}`,
+    ),
   /** Several searches in one request; a failed search rejects the whole call. */
   multiSearch: async (client: TypesenseClient, searches: (SearchParams & { collection: string })[], signal?: AbortSignal) => {
     const { results } = await client.request<{ results: (SearchResponse & { code?: number; error?: string })[] }>(

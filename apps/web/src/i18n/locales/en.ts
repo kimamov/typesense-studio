@@ -237,6 +237,13 @@ export const en = {
     createdOtherHint: 'Without “*” or “keys:*” this key cannot log in to Typesense Studio.',
     done: 'Done',
   },
+  document: {
+    newTitle: 'New document',
+    editTitle: 'Edit document {{id}}',
+    deleteTitle: 'Delete document?',
+    deleteDescription: 'Document {{id}} will be permanently removed from {{collection}}.',
+    deleted: 'Document deleted',
+  },
   search: {
     query: 'Search query',
     placeholder: 'Search documents…',

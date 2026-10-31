@@ -1,14 +1,16 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { SearchIcon, SearchXIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { QueryError } from '@/components/query-error'
 import { LazyJsonEditor } from '@/components/lazy-json-editor'
 import { FacetBar } from '@/components/search/facet-filters'
 import { HitCard } from '@/components/search/hit-card'
 import { Pagination } from '@/components/search/pagination'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -23,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { useActiveConnection } from '@/hooks/use-active-connection'
+import { useErrorMessage } from '@/hooks/use-typesense'
 import { formatNumber } from '@/lib/format'
 import { api } from '@/lib/typesense/api'
 import {
@@ -39,6 +42,7 @@ import {
   type FacetCount,
   type FilterValue,
   type SearchParams,
+  type SearchResponse,
 } from '@/lib/typesense/search'
 import type { CollectionSchema } from '@/lib/typesense/types'
 
@@ -74,6 +78,9 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
   const lng = i18n.resolvedLanguage
   const navigate = useNavigate({ from: '/c/$connectionId/collections/$name/search' })
   const { connection, client } = useActiveConnection()
+  const queryClient = useQueryClient()
+  const errorMessage = useErrorMessage()
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   const texts = textFields(schema)
   const facets = facetFields(schema)
@@ -145,6 +152,36 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
         signal,
       ),
     placeholderData: keepPreviousData,
+  })
+
+  const searches = [connection.id, 'collections', schema.name, 'search']
+  const remove = useMutation({
+    mutationFn: (id: string) => api.deleteDocument(client, schema.name, id),
+    // The hit disappears from every cached search right away and comes back if the delete fails.
+    onMutate: async (id) => {
+      // A search still loading would overwrite the edit below with a result that contains the document.
+      await queryClient.cancelQueries({ queryKey: searches })
+      // Snapshot of every cached search of this collection (each page, filter and sort), for the rollback in onError.
+      const previous = queryClient.getQueriesData<SearchResponse[]>({ queryKey: searches })
+      queryClient.setQueriesData<SearchResponse[]>({ queryKey: searches }, (data) =>
+        data?.map((response, i) =>
+          // Only the first response holds hits; the others are the facet-count searches with per_page 0.
+          // Searches that do not show the document keep their data, so `found` only drops where it was a hit.
+          i === 0 && response.hits?.some((hit) => String(hit.document.id) === id)
+            ? { ...response, found: response.found - 1, hits: response.hits.filter((hit) => String(hit.document.id) !== id) }
+            : response,
+        ),
+      )
+      // React Query passes the return value of onMutate to onError and onSettled as `context`.
+      return previous
+    },
+    onSuccess: () => toast.success(t('document.deleted')),
+    onError: (error, _id, previous) => {
+      previous?.forEach(([key, data]) => queryClient.setQueryData(key, data))
+      toast.error(errorMessage(error))
+    },
+    // Facet counts and the collection's document count only change on the server.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: [connection.id, 'collections', schema.name] }),
   })
 
   const [main, ...rest] = results.data ?? []
@@ -297,7 +334,12 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
             </p>
             <div className={results.isPlaceholderData ? 'flex flex-col gap-3 opacity-60 transition-opacity' : 'flex flex-col gap-3'}>
               {main.hits?.map((hit) => (
-                <HitCard key={String(hit.document.id)} hit={hit} />
+                <HitCard
+                  key={String(hit.document.id)}
+                  hit={hit}
+                  collection={schema.name}
+                  onDelete={() => setDeleting(String(hit.document.id))}
+                />
               ))}
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -321,6 +363,29 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
             </div>
           </>
         )}
+
+      <Dialog open={deleting !== null} onOpenChange={(open) => !open && setDeleting(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('document.deleteTitle')}</DialogTitle>
+            <DialogDescription>{t('document.deleteDescription', { id: deleting, collection: schema.name })}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleting(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleting !== null) remove.mutate(deleting)
+                setDeleting(null)
+              }}
+            >
+              {t('common.delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

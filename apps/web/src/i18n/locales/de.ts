@@ -240,6 +240,13 @@ export const de: Messages = {
     createdOtherHint: 'Ohne „*“ oder „keys:*“ kann sich dieser Key nicht bei Typesense Studio anmelden.',
     done: 'Fertig',
   },
+  document: {
+    newTitle: 'Neues Dokument',
+    editTitle: 'Dokument {{id}} bearbeiten',
+    deleteTitle: 'Dokument löschen?',
+    deleteDescription: 'Dokument {{id}} wird endgültig aus {{collection}} entfernt.',
+    deleted: 'Dokument gelöscht',
+  },
   search: {
     query: 'Suchbegriff',
     placeholder: 'Dokumente durchsuchen …',

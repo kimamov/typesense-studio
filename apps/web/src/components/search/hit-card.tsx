@@ -1,9 +1,11 @@
-import { ChevronDownIcon, CopyIcon } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { ChevronDownIcon, CopyIcon, PencilIcon, Trash2Icon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { useActiveConnection } from '@/hooks/use-active-connection'
 import { copyText } from '@/lib/clipboard'
 import { HIGHLIGHT_START, splitHighlight, type SearchHit } from '@/lib/typesense/search'
 
@@ -11,8 +13,9 @@ import { HIGHLIGHT_START, splitHighlight, type SearchHit } from '@/lib/typesense
 const VISIBLE_FIELDS = 8
 
 /** One search result. Kept separate from the page so a table view can render hits differently later. */
-export function HitCard({ hit }: { hit: SearchHit }) {
+export function HitCard({ hit, collection, onDelete }: { hit: SearchHit; collection: string; onDelete: () => void }) {
   const { t } = useTranslation()
+  const { connection } = useActiveConnection()
   const [expanded, setExpanded] = useState(false)
   const { id, ...fields } = hit.document
   const entries = Object.entries(fields)
@@ -36,6 +39,18 @@ export function HitCard({ hit }: { hit: SearchHit }) {
           </Button>
           <Button variant="ghost" size="icon-sm" aria-label={t('collection.copy')} onClick={() => void copy()}>
             <CopyIcon />
+          </Button>
+          <Link
+            to="/c/$connectionId/collections/$name/document"
+            params={{ connectionId: connection.id, name: collection }}
+            search={{ id: String(id) }}
+            aria-label={t('common.edit')}
+            className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+          >
+            <PencilIcon />
+          </Link>
+          <Button variant="ghost" size="icon-sm" aria-label={t('common.delete')} onClick={onDelete}>
+            <Trash2Icon />
           </Button>
         </div>
       </div>
