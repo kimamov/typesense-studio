@@ -1,4 +1,5 @@
 import { TypesenseError, type TypesenseClient } from './client'
+import type { DocumentAction, ImportResult, TypesenseDocument } from './document-form'
 import type { SearchParams, SearchResponse } from './search'
 import type { ApiKey, ApiKeyInput, CollectionSchema, DebugInfo, HealthInfo, Metrics, SchemaUpdate, Stats } from './types'
 
@@ -26,6 +27,24 @@ export const api = {
       query: params,
       signal,
     }),
+  document: (client: TypesenseClient, collection: string, id: string, signal?: AbortSignal) =>
+    client.request<TypesenseDocument>(
+      'GET',
+      `/collections/${encodeURIComponent(collection)}/documents/${encodeURIComponent(id)}`,
+      { signal },
+    ),
+  /** Writes documents as JSONL; the answer is HTTP 200 with one result per document, failed ones included. */
+  importDocuments: async (client: TypesenseClient, collection: string, documents: TypesenseDocument[], action: DocumentAction) => {
+    const text = await client.request<string>('POST', `/collections/${encodeURIComponent(collection)}/documents/import`, {
+      query: { action, return_id: true },
+      body: documents.map((document) => JSON.stringify(document)).join('\n'),
+      raw: true,
+    })
+    return text
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as ImportResult)
+  },
   deleteDocument: (client: TypesenseClient, collection: string, id: string) =>
     client.request<Record<string, unknown>>(
       'DELETE',
