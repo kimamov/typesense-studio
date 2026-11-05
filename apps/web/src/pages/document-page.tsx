@@ -234,7 +234,7 @@ function DocumentEditor({ schema, base, initial, onSaved }: DocumentEditorProps)
         </TabsList>
 
         <TabsContent value="form" className="flex flex-col gap-4">
-          <div className="grid gap-x-4 gap-y-3 rounded-xl border p-4 sm:grid-cols-[minmax(0,12rem)_1fr]">
+          <div className="grid gap-4 rounded-xl border p-4">
             {formFields(schema, draft, !!base).map((row) => (
               <FieldRow key={row.name} row={row} value={draft[row.name]} onChange={(value) => setValue(row.name, value)} />
             ))}
@@ -343,51 +343,59 @@ function DocumentEditor({ schema, base, initial, onSaved }: DocumentEditorProps)
 function FieldRow({ row, value, onChange }: { row: FormRow; value: unknown; onChange: (value: unknown) => void }) {
   const { t } = useTranslation()
   const id = `document-field-${row.name}`
+  const hintId = `${id}-hint`
+  const hint = row.kind === 'readonly' ? t(`document.readOnly.${row.reason}`) : row.name === 'id' ? t('document.idHint') : null
   // An empty optional field is left out of the document.
   const empty = row.required ? '' : undefined
 
   return (
-    <>
-      <div className="flex flex-wrap items-center gap-2 sm:pt-1.5">
-        <Label htmlFor={id} className="font-mono break-all">
-          {row.name}
-        </Label>
+    <div className="grid gap-2">
+      <Label id={`${id}-label`} htmlFor={id} className="flex-wrap">
+        {/* The spaces keep the accessible name "title string required" apart; flex layout ignores them. */}
+        <span className="font-mono break-all">{row.name}</span>{' '}
         <Badge variant="outline" className="font-mono">
           {row.type}
-        </Badge>
-        {row.required && <span className="text-xs text-muted-foreground">{t('document.required')}</span>}
-      </div>
-      <div className="flex min-w-0 flex-col gap-1">
-        {row.kind === 'readonly' ? (
-          <>
-            <Input id={id} readOnly value={value === undefined ? '' : JSON.stringify(value)} className="font-mono text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">{t(`document.readOnly.${row.reason}`)}</p>
-          </>
-        ) : row.kind === 'bool' ? (
-          <Switch id={id} checked={value === true} onCheckedChange={(checked) => onChange(checked)} />
-        ) : row.kind === 'list' ? (
-          <MultiValueCombobox
-            id={id}
-            values={Array.isArray(value) ? value.map(String) : []}
-            onChange={(values) => onChange(row.numeric ? values.map(Number).filter((n) => !Number.isNaN(n)) : values)}
-            suggestions={[]}
-          />
-        ) : (
-          <>
-            <Input
-              id={id}
-              type={row.kind === 'number' ? 'number' : 'text'}
-              value={value === undefined || value === null ? '' : String(value)}
-              onChange={(e) => {
-                const text = e.target.value
-                onChange(text === '' ? empty : row.kind === 'number' ? Number(text) : text)
-              }}
-              className={row.name === 'id' ? 'font-mono' : undefined}
-            />
-            {row.name === 'id' && <p className="text-xs text-muted-foreground">{t('document.idHint')}</p>}
-          </>
-        )}
-      </div>
-    </>
+        </Badge>{' '}
+        {row.required && <span className="text-xs font-normal text-muted-foreground">{t('document.required')}</span>}
+      </Label>
+      {row.kind === 'readonly' ? (
+        <Input
+          id={id}
+          readOnly
+          value={value === undefined ? '' : JSON.stringify(value)}
+          aria-describedby={hintId}
+          className="font-mono text-muted-foreground"
+        />
+      ) : row.kind === 'bool' ? (
+        // The id lands on Base UI's hidden input, so the visible switch is named by the label's id.
+        <Switch id={id} aria-labelledby={`${id}-label`} aria-required={row.required || undefined} checked={value === true} onCheckedChange={(checked) => onChange(checked)} />
+      ) : row.kind === 'list' ? (
+        <MultiValueCombobox
+          id={id}
+          required={row.required}
+          values={Array.isArray(value) ? value.map(String) : []}
+          onChange={(values) => onChange(row.numeric ? values.map(Number).filter((n) => !Number.isNaN(n)) : values)}
+          suggestions={[]}
+        />
+      ) : (
+        <Input
+          id={id}
+          type={row.kind === 'number' ? 'number' : 'text'}
+          value={value === undefined || value === null ? '' : String(value)}
+          onChange={(e) => {
+            const text = e.target.value
+            onChange(text === '' ? empty : row.kind === 'number' ? Number(text) : text)
+          }}
+          aria-describedby={hint ? hintId : undefined}
+          aria-required={row.required || undefined}
+          className={row.name === 'id' ? 'font-mono' : undefined}
+        />
+      )}
+      {hint && (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      )}
+    </div>
   )
 }

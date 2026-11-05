@@ -20,13 +20,14 @@ interface MultiValueComboboxProps {
   onChange: (values: string[]) => void
   suggestions: readonly string[]
   invalid?: boolean
+  required?: boolean
 }
 
 /**
  * Chips input with suggestions that also accepts any typed value: the typed text is offered as an
  * "Add" item after the suggestions, and a comma or closing the list (except with Escape) adds it as typed.
  */
-export function MultiValueCombobox({ id, values, onChange, suggestions, invalid }: MultiValueComboboxProps) {
+export function MultiValueCombobox({ id, values, onChange, suggestions, invalid, required }: MultiValueComboboxProps) {
   const { t } = useTranslation()
   const anchor = useComboboxAnchor()
   const [query, setQuery] = useState('')
@@ -83,7 +84,7 @@ export function MultiValueCombobox({ id, values, onChange, suggestions, invalid 
                   {item}
                 </ComboboxChip>
               ))}
-              <ComboboxChipsInput id={id} aria-invalid={invalid || undefined} />
+              <ComboboxChipsInput id={id} aria-invalid={invalid || undefined} aria-required={required || undefined} />
             </>
           )}
         </ComboboxValue>
