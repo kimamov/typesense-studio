@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useMatchRoute, useNavigate, useParams } from '@tanstack/react-router'
-import { BracesIcon, SearchIcon } from 'lucide-react'
+import { BracesIcon, FilePenIcon, SearchIcon } from 'lucide-react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -21,6 +21,7 @@ import { setLastCollection, useLastCollection } from '@/stores/last-collection'
 const COLLECTION_PAGES = [
   { to: '/c/$connectionId/collections/$name/search', label: 'nav.search', icon: SearchIcon },
   { to: '/c/$connectionId/collections/$name', label: 'nav.schema', icon: BracesIcon },
+  { to: '/c/$connectionId/collections/$name/document', label: 'nav.document', icon: FilePenIcon },
 ] as const
 
 /** Sidebar group with a collection switcher and the pages of the selected collection. */
