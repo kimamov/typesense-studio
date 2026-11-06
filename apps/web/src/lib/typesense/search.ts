@@ -1,4 +1,4 @@
-import type { CollectionField, CollectionSchema } from './types'
+import type { CollectionField, CollectionSchema } from './types.ts'
 
 /** Query params of `GET /collections/:name/documents/search` that the search page uses. */
 export interface SearchParams {
@@ -185,4 +185,18 @@ export function parseDocumentSearch(raw: Record<string, unknown>): DocumentSearc
     ...(PER_PAGE_OPTIONS.includes(raw.per_page as (typeof PER_PAGE_OPTIONS)[number]) && { per_page: raw.per_page as number }),
     ...(isObject(raw.json) && { json: raw.json }),
   }
+}
+
+/** The documents of a response, one JSON object per line. */
+export function hitsToJsonl(response: SearchResponse): string {
+  return (response.hits ?? []).map((hit) => JSON.stringify(hit.document) + '\n').join('')
+}
+
+/** A response as formatted JSON, with Typesense's default `<mark>` tags in place of the control characters. */
+export function responseToJson(response: SearchResponse): string {
+  return JSON.stringify(
+    response,
+    (_, value: unknown) => (typeof value === 'string' ? value.replaceAll(HIGHLIGHT_START, '<mark>').replaceAll(HIGHLIGHT_END, '</mark>') : value),
+    2,
+  )
 }

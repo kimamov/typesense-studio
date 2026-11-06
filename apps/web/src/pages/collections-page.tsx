@@ -33,6 +33,7 @@ import { useErrorMessage } from '@/hooks/use-typesense'
 import { formatDate, formatNumber } from '@/lib/format'
 import { api } from '@/lib/typesense/api'
 import type { CollectionSchema } from '@/lib/typesense/types'
+import { downloadFile } from '@/lib/download'
 
 export function CollectionsPage() {
   const { t, i18n } = useTranslation()
@@ -64,10 +65,7 @@ export function CollectionsPage() {
     mutationFn: (name: string) => api.exportDocuments(client, name),
     onSuccess: (jsonl, name) => {
       // shortcut: the whole export is held in memory; stream to a file if huge collections must be exported.
-      const url = URL.createObjectURL(new Blob([jsonl], { type: 'application/jsonl' }))
-      const a = Object.assign(document.createElement('a'), { href: url, download: `${name}.jsonl` })
-      a.click()
-      URL.revokeObjectURL(url)
+      downloadFile(jsonl, `${name}.jsonl`, 'application/jsonl')
     },
     onError,
   })
