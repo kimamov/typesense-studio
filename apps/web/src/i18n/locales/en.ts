@@ -131,8 +131,6 @@ export const en = {
     cloneSchema: 'Clone schema',
     clonePrompt: 'Name of the new collection. Only the schema of “{{name}}” is copied, not its documents.',
     cloned: 'Collection “{{name}}” created',
-    confirmDelete: 'Delete the collection “{{name}}” and all its documents? This cannot be undone.',
-    deleted: 'Collection “{{name}}” deleted',
   },
   collection: {
     delete: 'Delete collection',

@@ -133,8 +133,6 @@ export const de: Messages = {
     cloneSchema: 'Schema klonen',
     clonePrompt: 'Name der neuen Collection. Nur das Schema von „{{name}}“ wird kopiert, nicht die Dokumente.',
     cloned: 'Collection „{{name}}“ erstellt',
-    confirmDelete: 'Die Collection „{{name}}“ mit allen Dokumenten löschen? Das kann nicht rückgängig gemacht werden.',
-    deleted: 'Collection „{{name}}“ gelöscht',
   },
   collection: {
     delete: 'Collection löschen',

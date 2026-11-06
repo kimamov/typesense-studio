@@ -13,6 +13,7 @@ import {
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { DeleteCollectionDialog } from '@/components/delete-collection-dialog'
 import { QueryError } from '@/components/query-error'
 import { Button } from '@/components/ui/button'
 import {
@@ -29,6 +30,7 @@ import { useActiveConnection } from '@/hooks/use-active-connection'
 import { useErrorMessage } from '@/hooks/use-typesense'
 import { formatDate, formatNumber } from '@/lib/format'
 import { api } from '@/lib/typesense/api'
+import type { CollectionSchema } from '@/lib/typesense/types'
 
 export function CollectionsPage() {
   const { t, i18n } = useTranslation()
@@ -37,6 +39,7 @@ export function CollectionsPage() {
   const queryClient = useQueryClient()
   const errorMessage = useErrorMessage()
   const [filter, setFilter] = useState('')
+  const [toDelete, setToDelete] = useState<CollectionSchema>()
   const queryKey = [connection.id, 'collections']
   const collections = useQuery({
     queryKey,
@@ -46,14 +49,6 @@ export function CollectionsPage() {
   const visible = collections.data?.filter((c) => c.name.toLowerCase().includes(filter.trim().toLowerCase()))
 
   const onError = (error: Error) => toast.error(errorMessage(error))
-  const remove = useMutation({
-    mutationFn: (name: string) => api.deleteCollection(client, name),
-    onSuccess: (_, name) => {
-      toast.success(t('collections.deleted', { name }))
-      return queryClient.invalidateQueries({ queryKey })
-    },
-    onError,
-  })
   const clone = useMutation({
     mutationFn: ({ source, name }: { source: string; name: string }) => api.cloneCollection(client, source, name),
     onSuccess: (_, { name }) => {
@@ -74,9 +69,6 @@ export function CollectionsPage() {
     onError,
   })
 
-  const confirmRemove = (name: string) => {
-    if (window.confirm(t('collections.confirmDelete', { name }))) remove.mutate(name)
-  }
   const promptClone = (source: string) => {
     const name = window.prompt(t('collections.clonePrompt', { name: source }), `${source}_copy`)?.trim()
     if (name) clone.mutate({ source, name })
@@ -184,7 +176,7 @@ export function CollectionsPage() {
                             {t('collections.cloneSchema')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem variant="destructive" onClick={() => confirmRemove(c.name)}>
+                          <DropdownMenuItem variant="destructive" onClick={() => setToDelete(c)}>
                             <Trash2Icon />
                             {t('common.delete')}
                           </DropdownMenuItem>
@@ -197,6 +189,14 @@ export function CollectionsPage() {
             </TableBody>
           </Table>
         </div>
+      )}
+      {toDelete && (
+        <DeleteCollectionDialog
+          name={toDelete.name}
+          documents={toDelete.num_documents}
+          open
+          onOpenChange={(open) => !open && setToDelete(undefined)}
+        />
       )}
     </>
   )
