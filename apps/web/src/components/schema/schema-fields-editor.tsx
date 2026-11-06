@@ -31,10 +31,14 @@ interface SchemaFieldsEditorProps {
   draft: SchemaDraft
   changes: SchemaChange[]
   onChange: (draft: SchemaDraft) => void
+  /** For a collection that does not exist yet: no change markers, and new fields start required. */
+  create?: boolean
+  /** False hides the name errors at the fields, e.g. until a form was submitted once. */
+  showErrors?: boolean
 }
 
 /** The fields of a schema draft as a form: one fieldset per field with its type, locale and flags. */
-export function SchemaFieldsEditor({ base, draft, changes, onChange }: SchemaFieldsEditorProps) {
+export function SchemaFieldsEditor({ base, draft, changes, onChange, create = false, showErrors = true }: SchemaFieldsEditorProps) {
   const { t } = useTranslation()
   // Index of the field added last, whose name input takes the focus when it mounts; cleared once it loses focus,
   // so switching back from the JSON tab does not move the focus there again.
@@ -56,7 +60,7 @@ export function SchemaFieldsEditor({ base, draft, changes, onChange }: SchemaFie
 
   const add = () => {
     // Most new fields target collections that already have documents, which the server only allows for optional fields.
-    const field = { name: '', type: 'string', optional: true }
+    const field = create ? { name: '', type: 'string' } : { name: '', type: 'string', optional: true }
     addedFields.add(field)
     setFields([...draft.fields, field])
     setAdded(draft.fields.length)
@@ -66,8 +70,8 @@ export function SchemaFieldsEditor({ base, draft, changes, onChange }: SchemaFie
     <div className="flex flex-col gap-3">
       {draft.fields.map((field, index) => {
         const isNew = addedFields.has(field) || !baseNames.has(field.name)
-        const state = isNew ? 'add' : stateOf.get(field.name) === 'change' ? 'change' : undefined
-        const error = !field.name.trim() ? 'emptyName' : (nameCount.get(field.name) ?? 0) > 1 ? 'duplicateName' : undefined
+        const state = create ? undefined : isNew ? 'add' : stateOf.get(field.name) === 'change' ? 'change' : undefined
+        const error = !showErrors ? undefined : !field.name.trim() ? 'emptyName' : (nameCount.get(field.name) ?? 0) > 1 ? 'duplicateName' : undefined
         return (
           <FieldCard
             // Index keys keep the card (and focus) while a new field's name is typed.

@@ -6,12 +6,14 @@ import {
   DownloadIcon,
   EllipsisVerticalIcon,
   LibraryIcon,
+  PlusIcon,
   Trash2Icon,
   UploadIcon,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { CreateCollectionDialog } from '@/components/create-collection-dialog'
 import { DeleteCollectionDialog } from '@/components/delete-collection-dialog'
 import { QueryError } from '@/components/query-error'
 import { TableNoMatch, TableSearch } from '@/components/table-search'
@@ -40,6 +42,7 @@ export function CollectionsPage() {
   const errorMessage = useErrorMessage()
   const search = useTableSearch()
   const [toDelete, setToDelete] = useState<CollectionSchema>()
+  const [createOpen, setCreateOpen] = useState(false)
   const queryKey = [connection.id, 'collections']
   const collections = useQuery({
     queryKey,
@@ -76,14 +79,20 @@ export function CollectionsPage() {
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">{t('collections.title')}</h1>
           {collections.data && (
             <p className="text-sm text-muted-foreground">{t('collections.count', { count: collections.data.length })}</p>
           )}
         </div>
-        {!!collections.data?.length && <TableSearch search={search} />}
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          {!!collections.data?.length && <TableSearch search={search} className="sm:w-56" />}
+          <Button onClick={() => setCreateOpen(true)}>
+            <PlusIcon />
+            {t('collections.create')}
+          </Button>
+        </div>
       </div>
       {collections.error ? (
         <QueryError error={collections.error} onRetry={() => void collections.refetch()} />
@@ -93,6 +102,10 @@ export function CollectionsPage() {
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-16 text-center">
           <LibraryIcon className="size-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">{t('collections.empty')}</p>
+          <Button variant="outline" onClick={() => setCreateOpen(true)}>
+            <PlusIcon />
+            {t('collections.create')}
+          </Button>
         </div>
       ) : (
         <div className="rounded-xl border">
@@ -171,6 +184,7 @@ export function CollectionsPage() {
           </Table>
         </div>
       )}
+      <CreateCollectionDialog open={createOpen} onOpenChange={setCreateOpen} />
       {toDelete && (
         <DeleteCollectionDialog
           name={toDelete.name}

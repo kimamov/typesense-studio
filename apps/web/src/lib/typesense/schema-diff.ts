@@ -86,6 +86,30 @@ export function normalizeField(field: CollectionField): CollectionField {
   }
 }
 
+/** Fields without a name, and names used more than once. */
+export function fieldNameErrors(fields: CollectionField[]): SchemaDiffError[] {
+  const errors: SchemaDiffError[] = []
+  const seen = new Set<string>()
+  for (const { name } of fields) {
+    if (!name.trim()) errors.push({ kind: 'emptyName' })
+    else if (seen.has(name)) errors.push({ kind: 'duplicateName', name })
+    seen.add(name)
+  }
+  return errors
+}
+
+/** Index of the first entry that is not an object with a string `name` and `type`, or -1. */
+export function invalidFieldIndex(fields: unknown[]): number {
+  return fields.findIndex(
+    (field) =>
+      !field ||
+      typeof field !== 'object' ||
+      Array.isArray(field) ||
+      typeof (field as Record<string, unknown>).name !== 'string' ||
+      typeof (field as Record<string, unknown>).type !== 'string',
+  )
+}
+
 /** JSON with object keys sorted, so key order does not count as a difference. */
 function canonical(value: unknown): string {
   return JSON.stringify(value, (_, v: unknown) =>
@@ -107,13 +131,7 @@ function changedKeys(base: CollectionField, draft: CollectionField): string[] {
  * has it, so keys the table does not show (locale, stem_dictionary, …) keep their values.
  */
 export function diffSchema(base: SchemaDraft, draft: SchemaDraft): SchemaDiff {
-  const errors: SchemaDiffError[] = []
-  const seen = new Set<string>()
-  for (const { name } of draft.fields) {
-    if (!name.trim()) errors.push({ kind: 'emptyName' })
-    else if (seen.has(name)) errors.push({ kind: 'duplicateName', name })
-    seen.add(name)
-  }
+  const errors = fieldNameErrors(draft.fields)
 
   const baseByName = new Map(base.fields.map((field) => [field.name, field]))
   const draftNames = new Set(draft.fields.map((field) => field.name))
@@ -160,9 +178,7 @@ export function parseDraftJson(text: string): { draft: SchemaDraft } | { error: 
   if (fixed) return { error: { kind: 'fixedKey', key: fixed } }
   const { fields } = value as Record<string, unknown>
   if (!Array.isArray(fields)) return { error: { kind: 'fieldsNotArray' } }
-  const invalid = fields.findIndex(
-    (field) => !field || typeof field !== 'object' || Array.isArray(field) || typeof field.name !== 'string' || typeof field.type !== 'string',
-  )
+  const invalid = invalidFieldIndex(fields)
   if (invalid !== -1) return { error: { kind: 'fieldInvalid', index: invalid } }
   return { draft: value as SchemaDraft }
 }
