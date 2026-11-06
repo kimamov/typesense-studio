@@ -16,6 +16,8 @@ export const api = {
     client.request<CollectionSchema[]>('GET', '/collections', { signal }),
   collection: (client: TypesenseClient, name: string, signal?: AbortSignal) =>
     client.request<CollectionSchema>('GET', `/collections/${encodeURIComponent(name)}`, { signal }),
+  createCollection: (client: TypesenseClient, body: Record<string, unknown>) =>
+    client.request<CollectionSchema>('POST', '/collections', { body }),
   deleteCollection: (client: TypesenseClient, name: string) =>
     client.request<CollectionSchema>('DELETE', `/collections/${encodeURIComponent(name)}`),
   /** Copies the schema and its synonym and curation set references, not the documents. */
