@@ -5,11 +5,13 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { CreateApiKeyDialog } from '@/components/create-api-key-dialog'
 import { QueryError } from '@/components/query-error'
+import { TableNoMatch, TableSearch } from '@/components/table-search'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useActiveConnection } from '@/hooks/use-active-connection'
+import { useTableSearch } from '@/hooks/use-table-search'
 import { useErrorMessage } from '@/hooks/use-typesense'
 import { formatDate } from '@/lib/format'
 import { api } from '@/lib/typesense/api'
@@ -21,6 +23,7 @@ const NEVER_EXPIRES = 64723363199
 
 export function ApiKeysPage() {
   const { t, i18n } = useTranslation()
+  const search = useTableSearch()
   const lng = i18n.resolvedLanguage
   const errorMessage = useErrorMessage()
   const queryClient = useQueryClient()
@@ -47,6 +50,13 @@ export function ApiKeysPage() {
     onError: (error) => toast.error(errorMessage(error)),
   })
 
+  const visible = search.filter(keys.data ?? [], (key) => [
+    key.description,
+    key.value_prefix,
+    ...key.actions,
+    ...key.collections,
+  ])
+
   const confirmRemove = (key: ApiKey) => {
     if (window.confirm(t('apiKeys.confirmDelete', { name: key.description || `#${key.id}` }))) remove.mutate(key.id)
   }
@@ -58,10 +68,13 @@ export function ApiKeysPage() {
           <h1 className="text-2xl font-semibold">{t('apiKeys.title')}</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">{t('apiKeys.description')}</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <PlusIcon />
-          {t('apiKeys.create')}
-        </Button>
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          {!!keys.data?.length && <TableSearch search={search} className="sm:w-56" />}
+          <Button onClick={() => setCreateOpen(true)}>
+            <PlusIcon />
+            {t('apiKeys.create')}
+          </Button>
+        </div>
       </div>
 
       {keys.error ? (
@@ -89,7 +102,8 @@ export function ApiKeysPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {keys.data.map((key) => (
+              {visible.length === 0 && <TableNoMatch colSpan={6} />}
+              {visible.map((key) => (
                 <TableRow key={key.id}>
                   <TableCell className="font-medium whitespace-normal">{key.description || '–'}</TableCell>
                   <TableCell className="font-mono text-xs">{key.value_prefix}…</TableCell>

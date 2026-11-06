@@ -3,12 +3,14 @@ import { CpuIcon, HardDriveIcon, MemoryStickIcon, NetworkIcon } from 'lucide-rea
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { QueryError } from '@/components/query-error'
+import { TableNoMatch, TableSearch } from '@/components/table-search'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useActiveConnection } from '@/hooks/use-active-connection'
+import { useTableSearch } from '@/hooks/use-table-search'
 import { formatBytes, formatNumber, percent } from '@/lib/format'
 import { api } from '@/lib/typesense/api'
 
@@ -16,6 +18,7 @@ const REFRESH_SECONDS = 5
 
 export function ServerStatusPage() {
   const { t, i18n } = useTranslation()
+  const search = useTableSearch()
   const lng = i18n.resolvedLanguage
   const { connection, client } = useActiveConnection()
   const refetchInterval = REFRESH_SECONDS * 1000
@@ -62,6 +65,7 @@ export function ServerStatusPage() {
 
   const s = stats.data
   const endpoints = Object.keys({ ...s?.requests_per_second, ...s?.latency_ms }).sort()
+  const visibleEndpoints = search.filter(endpoints, (endpoint) => [endpoint])
 
   return (
     <>
@@ -170,6 +174,11 @@ export function ServerStatusPage() {
         <CardHeader>
           <CardTitle>{t('status.requests')}</CardTitle>
           <CardDescription>{t('status.requestsPerSecond')}</CardDescription>
+          {endpoints.length > 0 && (
+            <CardAction>
+              <TableSearch search={search} />
+            </CardAction>
+          )}
         </CardHeader>
         <CardContent className="grid gap-6">
           {s ? (
@@ -203,7 +212,8 @@ export function ServerStatusPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {endpoints.map((endpoint) => (
+                    {visibleEndpoints.length === 0 && <TableNoMatch colSpan={3} />}
+                    {visibleEndpoints.map((endpoint) => (
                       <TableRow key={endpoint}>
                         <TableCell className="font-mono text-xs">{endpoint}</TableCell>
                         <TableCell className="text-right tabular-nums">
