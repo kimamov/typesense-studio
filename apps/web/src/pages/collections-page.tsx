@@ -6,7 +6,6 @@ import {
   DownloadIcon,
   EllipsisVerticalIcon,
   LibraryIcon,
-  SearchIcon,
   Trash2Icon,
   UploadIcon,
 } from 'lucide-react'
@@ -15,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { DeleteCollectionDialog } from '@/components/delete-collection-dialog'
 import { QueryError } from '@/components/query-error'
+import { TableNoMatch, TableSearch } from '@/components/table-search'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -23,10 +23,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useActiveConnection } from '@/hooks/use-active-connection'
+import { useTableSearch } from '@/hooks/use-table-search'
 import { useErrorMessage } from '@/hooks/use-typesense'
 import { formatDate, formatNumber } from '@/lib/format'
 import { api } from '@/lib/typesense/api'
@@ -38,7 +38,7 @@ export function CollectionsPage() {
   const { connection, client } = useActiveConnection()
   const queryClient = useQueryClient()
   const errorMessage = useErrorMessage()
-  const [filter, setFilter] = useState('')
+  const search = useTableSearch()
   const [toDelete, setToDelete] = useState<CollectionSchema>()
   const queryKey = [connection.id, 'collections']
   const collections = useQuery({
@@ -46,7 +46,7 @@ export function CollectionsPage() {
     queryFn: ({ signal }) => api.collections(client, signal),
     select: (data) => [...data].sort((a, b) => a.name.localeCompare(b.name)),
   })
-  const visible = collections.data?.filter((c) => c.name.toLowerCase().includes(filter.trim().toLowerCase()))
+  const visible = collections.data && search.filter(collections.data, (c) => [c.name])
 
   const onError = (error: Error) => toast.error(errorMessage(error))
   const clone = useMutation({
@@ -83,20 +83,7 @@ export function CollectionsPage() {
             <p className="text-sm text-muted-foreground">{t('collections.count', { count: collections.data.length })}</p>
           )}
         </div>
-        {!!collections.data?.length && (
-          <InputGroup className="w-full sm:w-64">
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-            <InputGroupInput
-              type="search"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder={t('collections.filter')}
-              aria-label={t('collections.filter')}
-            />
-          </InputGroup>
-        )}
+        {!!collections.data?.length && <TableSearch search={search} />}
       </div>
       {collections.error ? (
         <QueryError error={collections.error} onRetry={() => void collections.refetch()} />
@@ -122,13 +109,7 @@ export function CollectionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                    {t('collections.noMatch')}
-                  </TableCell>
-                </TableRow>
-              )}
+              {visible.length === 0 && <TableNoMatch colSpan={5} />}
               {visible.map((c) => {
                 const params = { connectionId: connection.id, name: c.name }
                 return (
