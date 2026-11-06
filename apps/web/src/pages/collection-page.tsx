@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { ArrowLeftIcon, SearchXIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DeleteCollectionButton } from '@/components/delete-collection-dialog'
 import { QueryError } from '@/components/query-error'
 import { SchemaEditor } from '@/components/schema/schema-editor'
 import { Badge } from '@/components/ui/badge'
@@ -63,7 +64,10 @@ export function CollectionPage({ name }: { name: string }) {
     <>
       <div className="flex flex-col gap-2">
         {backLink}
-        <h1 className="font-mono text-2xl font-semibold break-all">{name}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="font-mono text-2xl font-semibold break-all">{name}</h1>
+          {schema && <DeleteCollectionButton name={name} documents={schema.num_documents} />}
+        </div>
       </div>
 
       {!schema ? (
