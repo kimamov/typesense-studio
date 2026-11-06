@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { SearchIcon, SearchXIcon } from 'lucide-react'
+import { DownloadIcon, SearchIcon, SearchXIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -16,6 +16,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -26,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { useActiveConnection } from '@/hooks/use-active-connection'
 import { useErrorMessage } from '@/hooks/use-typesense'
+import { downloadFile } from '@/lib/download'
 import { formatNumber } from '@/lib/format'
 import { api } from '@/lib/typesense/api'
 import {
@@ -34,8 +36,10 @@ import {
   facetFields,
   HIGHLIGHT_END,
   HIGHLIGHT_START,
+  hitsToJsonl,
   isActive,
   PER_PAGE_OPTIONS,
+  responseToJson,
   sortFields,
   textFields,
   type DocumentSearch,
@@ -324,14 +328,30 @@ function SearchView({ schema, search }: { schema: CollectionSchema; search: Docu
           </div>
         ) : (
           <>
-            <p className="text-sm text-muted-foreground" aria-live="polite">
-              {t('search.summary', {
-                first: formatNumber(first, lng, 0),
-                last: formatNumber(last, lng, 0),
-                found: formatNumber(main.found, lng, 0),
-                ms: main.search_time_ms,
-              })}
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-muted-foreground" aria-live="polite">
+                {t('search.summary', {
+                  first: formatNumber(first, lng, 0),
+                  last: formatNumber(last, lng, 0),
+                  found: formatNumber(main.found, lng, 0),
+                  ms: main.search_time_ms,
+                })}
+              </p>
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                  <DownloadIcon />
+                  {t('search.export')}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-48">
+                  <DropdownMenuItem onClick={() => downloadFile(hitsToJsonl(main), `${schema.name}-page-${page}.jsonl`, 'application/jsonl')}>
+                    {t('search.exportHits')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadFile(responseToJson(main), `${schema.name}-search.json`, 'application/json')}>
+                    {t('search.exportResponse')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             <div className={results.isPlaceholderData ? 'flex flex-col gap-3 opacity-60 transition-opacity' : 'flex flex-col gap-3'}>
               {main.hits?.map((hit) => (
                 <HitCard
