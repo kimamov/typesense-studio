@@ -122,6 +122,12 @@ export const en = {
     createdAt: 'Created',
   },
   collection: {
+    delete: 'Delete collection',
+    deleting: 'Deleting…',
+    deleteTitle: 'Delete “{{name}}”?',
+    deleteDescription_one: 'The collection and its {{formatted}} document are permanently deleted. This cannot be undone.',
+    deleteDescription_other: 'The collection and all {{formatted}} documents are permanently deleted. This cannot be undone.',
+    deleted: 'Collection “{{name}}” deleted',
     notFound: 'There is no collection named “{{name}}” on this server.',
     defaultSortingField: 'Default sorting field',
     synonymSets: 'Synonym sets',

@@ -18,6 +18,8 @@ export const api = {
     client.request<CollectionSchema>('GET', `/collections/${encodeURIComponent(name)}`, { signal }),
   updateCollection: (client: TypesenseClient, name: string, body: SchemaUpdate) =>
     client.request<SchemaUpdate>('PATCH', `/collections/${encodeURIComponent(name)}`, { body }),
+  deleteCollection: (client: TypesenseClient, name: string) =>
+    client.request<CollectionSchema>('DELETE', `/collections/${encodeURIComponent(name)}`),
   keys: (client: TypesenseClient, signal?: AbortSignal) =>
     client.request<{ keys: ApiKey[] }>('GET', '/keys', { signal }).then((response) => response.keys),
   createKey: (client: TypesenseClient, input: ApiKeyInput) => client.request<ApiKey>('POST', '/keys', { body: input }),

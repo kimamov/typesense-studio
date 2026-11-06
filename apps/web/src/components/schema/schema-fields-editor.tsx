@@ -36,7 +36,8 @@ interface SchemaFieldsEditorProps {
 /** The fields of a schema draft as a form: one fieldset per field with its type, locale and flags. */
 export function SchemaFieldsEditor({ base, draft, changes, onChange }: SchemaFieldsEditorProps) {
   const { t } = useTranslation()
-  // Index of the field added last, whose name input takes the focus when it mounts.
+  // Index of the field added last, whose name input takes the focus when it mounts; cleared once it loses focus,
+  // so switching back from the JSON tab does not move the focus there again.
   const [added, setAdded] = useState<number | null>(null)
   // Fields added in the form, tracked by object so a new field keeps its name input while its name matches an existing one.
   const [addedFields] = useState(() => new WeakSet<CollectionField>())
@@ -76,6 +77,7 @@ export function SchemaFieldsEditor({ base, draft, changes, onChange }: SchemaFie
             state={state}
             error={error}
             autoFocus={index === added}
+            onNameBlur={() => setAdded(null)}
             onChange={(next) => replace(index, next)}
             onRemove={() => setFields(draft.fields.filter((_, i) => i !== index))}
           />
@@ -111,11 +113,12 @@ interface FieldCardProps {
   state?: 'add' | 'change'
   error?: 'emptyName' | 'duplicateName'
   autoFocus: boolean
+  onNameBlur: () => void
   onChange: (field: CollectionField) => void
   onRemove: () => void
 }
 
-function FieldCard({ field, isNew, state, error, autoFocus, onChange, onRemove }: FieldCardProps) {
+function FieldCard({ field, isNew, state, error, autoFocus, onNameBlur, onChange, onRemove }: FieldCardProps) {
   const { t } = useTranslation()
   const id = useId()
   const reason = readOnlyReason(field)
@@ -144,6 +147,7 @@ function FieldCard({ field, isNew, state, error, autoFocus, onChange, onRemove }
               onChange={(e) => onChange({ ...field, name: e.target.value })}
               // Focus moves to a field the admin just added.
               autoFocus={autoFocus}
+              onBlur={onNameBlur}
               aria-invalid={!!error || undefined}
               aria-describedby={error ? `${id}-error` : undefined}
               className="font-mono"
