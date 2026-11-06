@@ -118,7 +118,7 @@ import 'typesense-studio/embed.css'
 
 For hosts without their own React build, the same entry also exports `mount(element, config)` (and `unmount`), which bundles React. The iframe (`embed.html`) remains a possible third wrapper on top of the same component, if a CMS can only frame pages.
 
-**Features (core):** collection switcher or one fixed collection; search with facets and JSON mode; document editor (open, create, edit, delete); schema read-only. Not included: connections, API keys, server status and operations, schema editing, collection create/clone/delete, sets, aliases, presets. Later as feature flags if a host needs them.
+**Features (core):** collection switcher or one fixed collection; search with facets and JSON mode; document editor (open, create, edit, delete); schema read-only (confirmed 2026-11-06). Not included: connections, API keys, server status and operations, schema editing, collection create/clone/delete, sets, aliases, presets. Later as feature flags if a host needs them.
 
 **What has to change (by layer):**
 
@@ -153,4 +153,3 @@ For hosts without their own React build, the same entry also exports `mount(elem
 
 1. Package name and distribution: npm package, or only the built files on the release page?
 2. CSS strategy: scoped class + layer, or shadow root (see risk above).
-3. Is the read-only schema view needed, or are search and documents enough?
