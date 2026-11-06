@@ -100,7 +100,7 @@ A smaller build with core features and exactly one connection is enough. The hos
 
 This is a rough plan to agree on direction. It gets its own design doc (`docs/designs/embed.md`) before implementation.
 
-**Public API (sketch).** A second entry point, published as a library build next to the app build:
+**Public API (sketch).** A second entry point, built as a library next to the app build (not published as a package for now):
 
 ```tsx
 import { TypesenseStudio } from 'typesense-studio/embed'
@@ -141,7 +141,7 @@ For hosts without their own React build, the same entry also exports `mount(elem
 **React as a peer dependency.** A host with its own React must use React 19 (our version). `mount()` avoids this for hosts without React.
 
 **Steps (each one PR):**
-1. Design doc `docs/designs/embed.md`: API, CSS strategy, key handling, packaging.
+1. Design doc `docs/designs/embed.md`: API, CSS strategy, key handling, build output.
 2. Make the existing app embeddable without changing its behavior: providers take their instance (QueryClient, i18n, router history) from props; portal container configurable; pages only rely on `useActiveConnection()`.
 3. Embed entry point + library build (Vite library mode), core routes, embed layout, read-only schema.
 4. Example host page in the repo that renders the component with a restricted key against the compose Typesense, as the acceptance test.
@@ -149,7 +149,7 @@ For hosts without their own React build, the same entry also exports `mount(elem
 
 **Acceptance (for the finished feature):** the example host renders the component next to its own styled content, can search and edit `demo_books` with a key limited to `documents:*`, the host page's styles and URL are unaffected, nothing is written to storage, and the full app is unchanged (`pnpm check` passes).
 
-### Open points
+### Decided / deferred
 
-1. Package name and distribution: npm package, or only the built files on the release page?
-2. CSS strategy: scoped class + layer, or shadow root (see risk above).
+- Distribution (2026-11-06): no npm package for now. The embed entry point is part of this repo's build; the built files are what a CMS plugin uses. The import path in the API sketch is a placeholder.
+- CSS strategy: deferred, decided in `docs/designs/embed.md` (see "Main risk" above).
