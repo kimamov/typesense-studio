@@ -13,9 +13,17 @@ export const api = {
   stats: (client: TypesenseClient, signal?: AbortSignal) =>
     client.request<Stats>('GET', '/stats.json', { signal }),
   collections: (client: TypesenseClient, signal?: AbortSignal) =>
-    client.request<CollectionSchema[]>('GET', '/collections', { query: { exclude_fields: 'fields' }, signal }),
+    client.request<CollectionSchema[]>('GET', '/collections', { signal }),
   collection: (client: TypesenseClient, name: string, signal?: AbortSignal) =>
     client.request<CollectionSchema>('GET', `/collections/${encodeURIComponent(name)}`, { signal }),
+  deleteCollection: (client: TypesenseClient, name: string) =>
+    client.request<CollectionSchema>('DELETE', `/collections/${encodeURIComponent(name)}`),
+  /** Copies the schema and its synonym and curation set references, not the documents. */
+  cloneCollection: (client: TypesenseClient, source: string, name: string) =>
+    client.request<CollectionSchema>('POST', '/collections', { query: { src_name: source }, body: { name } }),
+  /** All documents as JSONL. */
+  exportDocuments: (client: TypesenseClient, name: string) =>
+    client.request<string>('GET', `/collections/${encodeURIComponent(name)}/documents/export`, { raw: true }),
   updateCollection: (client: TypesenseClient, name: string, body: SchemaUpdate) =>
     client.request<SchemaUpdate>('PATCH', `/collections/${encodeURIComponent(name)}`, { body }),
   keys: (client: TypesenseClient, signal?: AbortSignal) =>
