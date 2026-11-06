@@ -92,18 +92,49 @@ Use case: render the app inside a container of another platform, e.g. a TYPO3 ba
 2. **Custom element with Shadow DOM** (`<typesense-studio>`): one script tag, attributes/properties for connection, key, language, theme, initial route. Requires: memory history, all CSS inside the shadow root (Tailwind v4 output injected there, variables on `:host`), portal container inside the shadow root for Base UI and the toaster, sidebar `absolute`/container-height based, container queries instead of viewport breakpoints where layout depends on width. Larger change, touches every layer once.
 3. **npm library** (`mount(element, options)` for React hosts): same work as option 2 minus the custom-element wrapper; not useful for TYPO3, which is not React.
 
-### Proposal
+### Decision (2026-11-06)
 
-- Now (cheap, independent of the decision): keep new code free of new global assumptions. No new `document.body`/`window.location` access outside `main.tsx`/`router.tsx`; new layouts size to their parent, not to the viewport.
-- Next iteration: define an `EmbedConfig` (`connection`, `apiKey` or `getApiKey()`, `transport`, `language`, `theme`, `initialRoute`, `features` to hide pages) and make the app take it from one place. Ship option 1 (iframe + `postMessage` handshake + `?embed=1` chromeless layout) first, because TYPO3 widgets can host an iframe without any build integration.
-- Later, if iframe proves too limiting (sizing, look and feel): option 2 on top of the same `EmbedConfig`.
+A smaller build with core features and exactly one connection is enough. TYPO3 configures that connection and hands over the key. The full app stays as it is.
 
-### Security note
+### Proposal: embed mode
 
-In an embedded setup the host should not hand an admin key to the browser if it can avoid it. With `apps/server` (or the TYPO3 backend) as proxy, the proxy can inject the key server side, and the widget never sees it. This changes our "admin key in the browser" model (`isKeyRejected`, `GET /keys` check) and needs its own discussion: the proxy would add the key itself, and the web app would treat the connection as authenticated without a key.
+**Delivery: iframe, a separate entry point.** A second Vite entry (`embed.html`) next to `index.html`, in the same build and served by `apps/server` or shipped inside the TYPO3 extension. The TYPO3 widget renders `<iframe src=".../embed.html">`. An iframe needs no style isolation work, no portal changes and no TYPO3 build integration. A custom element can follow later on the same config (option 2) if the iframe is too limiting.
 
-### Questions for you
+**Configuration: `postMessage` handshake, nothing in the URL.**
+1. The embed page posts `{type: 'typesense-studio:ready'}` to `window.parent`.
+2. The host answers with `{type: 'typesense-studio:config', connection: {protocol, host, port, path, transport}, apiKey, language?, theme?, collection?}`.
+3. The embed page accepts the message only from `window.parent` and validates its shape (trust boundary). The key is kept in memory only: no local/session storage, no URL.
+4. The host may send a new config at any time (e.g. a refreshed key); queries are reset.
 
-1. Is TYPO3 the only host for now, and is an iframe acceptable there?
-2. Should the widget show the whole app or a subset (e.g. only search + document editing for editors)?
-3. Who holds the Typesense key in the TYPO3 case: the browser, or the TYPO3 backend as proxy?
+The host restricts who may frame the page with a `frame-ancestors` CSP header.
+
+**Features (core):**
+- Collection switcher, or a single fixed collection when `collection` is set.
+- Search page with facets and JSON mode.
+- Document editor: open, create, edit, delete.
+- Schema: read-only view.
+
+Not in the embed build: connections page, API keys, server status and operations, schema editing, creating/cloning/deleting collections, sets, aliases, presets. Each can become a feature flag later if TYPO3 needs it.
+
+**Keys without admin rights.** TYPO3 should hand out a key limited to what editors need (e.g. `documents:*` and `collections:get` for the allowed collections), not the admin key. The embed mode therefore skips the admin check (`GET /keys`, `isKeyRejected`) and shows a 401/403 per action as "not allowed with this key" instead of logging out.
+
+**Layout.** The embed layout has no sidebar: a top bar with the collection switcher and Search / Document / Schema tabs, sized to the iframe. Optional `typesense-studio:resize` messages to the host with the content height, so the widget can grow instead of scrolling twice.
+
+**Code impact (estimate).**
+- `embed.html` + `embed.tsx`: own router (memory history, only the core routes), own `ActiveConnection` provider fed by the handshake instead of `stores/connections.ts`.
+- `connection-layout.tsx`: split so the pages get `useActiveConnection()` from either provider; pages themselves stay unchanged.
+- Pages hide actions that are not in the embed build (one `useEmbed()` flag), e.g. "Delete collection".
+- Pure module for validating the config message, with tests.
+
+### Acceptance criteria
+
+- A plain test host page (not TYPO3) with an iframe sends the config and can search and edit documents in `demo_books`, in direct and in proxy mode.
+- With a key limited to `documents:*` on `demo_books`, search and edit work, and forbidden actions show a clear message.
+- The key never appears in storage, the URL or the server log of `apps/server`.
+- The full app is unchanged; `pnpm check` passes.
+
+### Open points
+
+1. Does TYPO3 serve the embed files itself (same origin, extension `Resources/Public`) or does it frame a separately deployed Typesense Studio? Both work; it only changes the CSP and the deployment docs.
+2. Is the schema view needed in the widget, or are search and documents enough?
+3. Should the TYPO3 extension itself live in this repo (`apps/typo3`) or separately?
