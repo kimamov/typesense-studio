@@ -137,6 +137,12 @@ export const de: Messages = {
     deleted: 'Collection „{{name}}“ gelöscht',
   },
   collection: {
+    delete: 'Collection löschen',
+    deleting: 'Wird gelöscht…',
+    deleteTitle: '„{{name}}“ löschen?',
+    deleteDescription_one: 'Die Collection und ihr {{formatted}} Dokument werden endgültig gelöscht. Das lässt sich nicht rückgängig machen.',
+    deleteDescription_other: 'Die Collection und alle {{formatted}} Dokumente werden endgültig gelöscht. Das lässt sich nicht rückgängig machen.',
+    deleted: 'Collection „{{name}}“ gelöscht',
     notFound: 'Auf diesem Server gibt es keine Collection namens „{{name}}“.',
     defaultSortingField: 'Standard-Sortierfeld',
     synonymSets: 'Synonym-Sets',
