@@ -14,12 +14,37 @@ import { api } from '@/lib/typesense/api'
 
 /** "Delete collection" button with a confirmation; on success it returns to the collections list. */
 export function DeleteCollectionButton({ name, documents }: { name: string; documents: number }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <Button variant="destructive" onClick={() => setOpen(true)}>
+        <Trash2Icon />
+        {t('collection.delete')}
+      </Button>
+      <DeleteCollectionDialog name={name} documents={documents} open={open} onOpenChange={setOpen} />
+    </>
+  )
+}
+
+/** Confirmation dialog that deletes the collection and then shows the collections list. */
+export function DeleteCollectionDialog({
+  name,
+  documents,
+  open,
+  onOpenChange,
+}: {
+  name: string
+  documents: number
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
   const { t, i18n } = useTranslation()
   const errorMessage = useErrorMessage()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { connection, client } = useActiveConnection()
-  const [open, setOpen] = useState(false)
+  const setOpen = onOpenChange
 
   const remove = useMutation({
     mutationFn: () => api.deleteCollection(client, name),
@@ -28,6 +53,8 @@ export function DeleteCollectionButton({ name, documents }: { name: string; docu
       queryClient.removeQueries({ queryKey: [connection.id, 'collections', name] })
       await queryClient.invalidateQueries({ queryKey: [connection.id, 'collections'] })
       toast.success(t('collection.deleted', { name }))
+      // On the collections list the navigation stays on the page, so the dialog has to close itself.
+      setOpen(false)
       // Unsaved schema edits belong to the deleted collection, so the blocker must not ask about them.
       void navigate({ to: '/c/$connectionId/collections', params: { connectionId: connection.id }, ignoreBlocker: true })
     },
@@ -35,10 +62,6 @@ export function DeleteCollectionButton({ name, documents }: { name: string; docu
 
   return (
     <>
-      <Button variant="destructive" onClick={() => setOpen(true)}>
-        <Trash2Icon />
-        {t('collection.delete')}
-      </Button>
       <Dialog
         open={open}
         onOpenChange={(next) => {
