@@ -72,7 +72,7 @@ Typesense 30 features neither dashboard covers: conversational search models (`/
 
 ## Embedding as a widget
 
-Use case: render the app inside a container of another platform, e.g. a TYPO3 backend dashboard widget, instead of owning the whole page.
+Use case: render the app inside a container of another platform, e.g. as a CMS plugin (TYPO3 or any other), instead of owning the whole page.
 
 ### What blocks it today
 
@@ -90,51 +90,67 @@ Use case: render the app inside a container of another platform, e.g. a TYPO3 ba
 
 1. **iframe** (works almost today): the host renders `<iframe src="…/#/c/<id>/…">`. Full isolation, no style conflicts. Missing: a way for the host to pass the connection and key (URL fragment or `postMessage`), sizing, and a "chromeless" mode without the connection switcher. Small change.
 2. **Custom element with Shadow DOM** (`<typesense-studio>`): one script tag, attributes/properties for connection, key, language, theme, initial route. Requires: memory history, all CSS inside the shadow root (Tailwind v4 output injected there, variables on `:host`), portal container inside the shadow root for Base UI and the toaster, sidebar `absolute`/container-height based, container queries instead of viewport breakpoints where layout depends on width. Larger change, touches every layer once.
-3. **npm library** (`mount(element, options)` for React hosts): same work as option 2 minus the custom-element wrapper; not useful for TYPO3, which is not React.
+3. **React component library** (`<TypesenseStudio {...config} />`, plus `mount(element, config)` for hosts without React): same work as option 2 minus the custom-element wrapper, without style isolation unless the component creates a shadow root itself. Chosen, see below.
 
 ### Decision (2026-11-06)
 
-A smaller build with core features and exactly one connection is enough. TYPO3 configures that connection and hands over the key. The full app stays as it is.
+A smaller build with core features and exactly one connection is enough. The host configures that connection and hands over the key. It must not be tied to TYPO3: any CMS (or other app) should be able to use it as a plugin. The intended integration is that the CMS plugin has its own React entry point and renders the app as a child component, passing the config as props. The full app stays as it is.
 
-### Proposal: embed mode
+### Rough plan: embeddable component
 
-**Delivery: iframe, a separate entry point.** A second Vite entry (`embed.html`) next to `index.html`, in the same build and served by `apps/server` or shipped inside the TYPO3 extension. The TYPO3 widget renders `<iframe src=".../embed.html">`. An iframe needs no style isolation work, no portal changes and no TYPO3 build integration. A custom element can follow later on the same config (option 2) if the iframe is too limiting.
+This is a rough plan to agree on direction. It gets its own design doc (`docs/designs/embed.md`) before implementation.
 
-**Configuration: `postMessage` handshake, nothing in the URL.**
-1. The embed page posts `{type: 'typesense-studio:ready'}` to `window.parent`.
-2. The host answers with `{type: 'typesense-studio:config', connection: {protocol, host, port, path, transport}, apiKey, language?, theme?, collection?}`.
-3. The embed page accepts the message only from `window.parent` and validates its shape (trust boundary). The key is kept in memory only: no local/session storage, no URL.
-4. The host may send a new config at any time (e.g. a refreshed key); queries are reset.
+**Public API (sketch).** A second entry point, published as a library build next to the app build:
 
-The host restricts who may frame the page with a `frame-ancestors` CSP header.
+```tsx
+import { TypesenseStudio } from 'typesense-studio/embed'
+import 'typesense-studio/embed.css'
 
-**Features (core):**
-- Collection switcher, or a single fixed collection when `collection` is set.
-- Search page with facets and JSON mode.
-- Document editor: open, create, edit, delete.
-- Schema: read-only view.
+<TypesenseStudio
+  connection={{ protocol: 'https', host: 'search.example.com', port: 443, path: '', transport: 'direct' }}
+  apiKey={key}            // or getApiKey: () => Promise<string>, for refreshed keys
+  collection="pages"      // optional: fix one collection, hide the switcher
+  language="de"           // optional, follows the host
+  theme="light"           // optional: 'light' | 'dark' | 'system'
+  onError={...}           // optional
+/>
+```
 
-Not in the embed build: connections page, API keys, server status and operations, schema editing, creating/cloning/deleting collections, sets, aliases, presets. Each can become a feature flag later if TYPO3 needs it.
+For hosts without their own React build, the same entry also exports `mount(element, config)` (and `unmount`), which bundles React. The iframe (`embed.html`) remains a possible third wrapper on top of the same component, if a CMS can only frame pages.
 
-**Keys without admin rights.** TYPO3 should hand out a key limited to what editors need (e.g. `documents:*` and `collections:get` for the allowed collections), not the admin key. The embed mode therefore skips the admin check (`GET /keys`, `isKeyRejected`) and shows a 401/403 per action as "not allowed with this key" instead of logging out.
+**Features (core):** collection switcher or one fixed collection; search with facets and JSON mode; document editor (open, create, edit, delete); schema read-only. Not included: connections, API keys, server status and operations, schema editing, collection create/clone/delete, sets, aliases, presets. Later as feature flags if a host needs them.
 
-**Layout.** The embed layout has no sidebar: a top bar with the collection switcher and Search / Document / Schema tabs, sized to the iframe. Optional `typesense-studio:resize` messages to the host with the content height, so the widget can grow instead of scrolling twice.
+**What has to change (by layer):**
 
-**Code impact (estimate).**
-- `embed.html` + `embed.tsx`: own router (memory history, only the core routes), own `ActiveConnection` provider fed by the handshake instead of `stores/connections.ts`.
-- `connection-layout.tsx`: split so the pages get `useActiveConnection()` from either provider; pages themselves stay unchanged.
-- Pages hide actions that are not in the embed build (one `useEmbed()` flag), e.g. "Delete collection".
-- Pure module for validating the config message, with tests.
+| Layer | Full app today | Embedded component |
+| --- | --- | --- |
+| Mount | `createRoot(#root)` in `main.tsx` | Host renders `<TypesenseStudio>`; `main.tsx` stays for the full app |
+| Routing | Hash history | Memory history, only the core routes; never touches the host URL |
+| Connection | `stores/connections.ts`, user enters key | Props feed `ActiveConnectionContext` directly; key only in memory |
+| Admin check | `GET /keys` must succeed | Skipped; 401/403 per action shown as "not allowed with this key" |
+| Providers | One global `QueryClient`, global i18n instance | Own `QueryClient` and `i18next.createInstance()` per mounted component |
+| Theme | `next-themes`, `.dark` on `<html>` | `theme` prop, class on the component's root element |
+| CSS | Tailwind base styles on `html`/`body`, variables on `:root` | Styles scoped to the component root; no global base styles |
+| Portals | Dialogs, popovers, toasts on `document.body` | Portal container inside the component root |
+| Layout | Sidebar `fixed`, `h-svh` | No sidebar; top bar with tabs, sized to the parent |
 
-### Acceptance criteria
+**Main risk: CSS without isolation.** As a child component there is no iframe or Shadow DOM boundary: CMS backend styles reach into the component, and our styles must not reach out. Options, to decide in the design doc:
+- Scope everything under one root class and in a CSS layer, without Tailwind's global preflight (keeps the DOM normal; host styles with high specificity can still leak in).
+- Render inside a shadow root created by the component (real isolation; portals and the CodeMirror chunk must target that root).
 
-- A plain test host page (not TYPO3) with an iframe sends the config and can search and edit documents in `demo_books`, in direct and in proxy mode.
-- With a key limited to `documents:*` on `demo_books`, search and edit work, and forbidden actions show a clear message.
-- The key never appears in storage, the URL or the server log of `apps/server`.
-- The full app is unchanged; `pnpm check` passes.
+**React as a peer dependency.** A host with its own React must use React 19 (our version). `mount()` avoids this for hosts without React.
+
+**Steps (each one PR):**
+1. Design doc `docs/designs/embed.md`: API, CSS strategy, key handling, packaging.
+2. Make the existing app embeddable without changing its behavior: providers take their instance (QueryClient, i18n, router history) from props; portal container configurable; pages only rely on `useActiveConnection()`.
+3. Embed entry point + library build (Vite library mode), core routes, embed layout, read-only schema.
+4. Example host page in the repo that renders the component with a restricted key against the compose Typesense, as the acceptance test.
+5. Docs for CMS plugin authors; a TYPO3 extension is then a thin wrapper, outside this repo or in a later step.
+
+**Acceptance (for the finished feature):** the example host renders the component next to its own styled content, can search and edit `demo_books` with a key limited to `documents:*`, the host page's styles and URL are unaffected, nothing is written to storage, and the full app is unchanged (`pnpm check` passes).
 
 ### Open points
 
-1. Does TYPO3 serve the embed files itself (same origin, extension `Resources/Public`) or does it frame a separately deployed Typesense Studio? Both work; it only changes the CSP and the deployment docs.
-2. Is the schema view needed in the widget, or are search and documents enough?
-3. Should the TYPO3 extension itself live in this repo (`apps/typo3`) or separately?
+1. Package name and distribution: npm package, or only the built files on the release page?
+2. CSS strategy: scoped class + layer, or shadow root (see risk above).
+3. Is the read-only schema view needed, or are search and documents enough?
