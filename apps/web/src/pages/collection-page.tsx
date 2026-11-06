@@ -1,31 +1,23 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { ArrowLeftIcon, CopyIcon, PencilIcon, SearchXIcon } from 'lucide-react'
+import { ArrowLeftIcon, SearchXIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import { QueryError } from '@/components/query-error'
 import { SchemaEditor } from '@/components/schema/schema-editor'
 import { Badge } from '@/components/ui/badge'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useActiveConnection } from '@/hooks/use-active-connection'
-import { copyText } from '@/lib/clipboard'
 import { formatDate, formatNumber } from '@/lib/format'
 import { api } from '@/lib/typesense/api'
 import { TypesenseError } from '@/lib/typesense/client'
-import type { CollectionField } from '@/lib/typesense/types'
-
-/** Flags worth calling out; `index` is shown only when it is off, since indexing is the default. */
-const FLAGS = ['facet', 'optional', 'sort', 'infix', 'stem'] as const
 
 export function CollectionPage({ name }: { name: string }) {
   const { t, i18n } = useTranslation()
   const lng = i18n.resolvedLanguage
   const { connection, client } = useActiveConnection()
-  const [editing, setEditing] = useState(false)
+  const [version, setVersion] = useState(0)
   const collection = useQuery({
     queryKey: [connection.id, 'collections', name],
     queryFn: ({ signal }) => api.collection(client, name, signal),
@@ -67,11 +59,6 @@ export function CollectionPage({ name }: { name: string }) {
 
   const schema = collection.data
 
-  const copySchema = async () => {
-    if (await copyText(JSON.stringify(schema, null, 2))) toast.success(t('collection.copied'))
-    else toast.error(t('collection.copyFailed'))
-  }
-
   return (
     <>
       <div className="flex flex-col gap-2">
@@ -97,63 +84,8 @@ export function CollectionPage({ name }: { name: string }) {
             </Fact>
           </dl>
 
-          {editing ? (
-            <SchemaEditor schema={schema} onDone={() => setEditing(false)} />
-          ) : (
-            <Tabs defaultValue="fields">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <TabsList activateOnFocus>
-                  <TabsTrigger value="fields">{t('collection.fieldsTab', { count: schema.fields.length })}</TabsTrigger>
-                  <TabsTrigger value="json">JSON</TabsTrigger>
-                </TabsList>
-                <Button variant="outline" onClick={() => setEditing(true)}>
-                  <PencilIcon />
-                  {t('schema.edit')}
-                </Button>
-              </div>
-
-              <TabsContent value="fields" className="rounded-xl border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('collection.field')}</TableHead>
-                      <TableHead>{t('collection.type')}</TableHead>
-                      <TableHead>{t('collection.flags')}</TableHead>
-                      <TableHead>{t('collection.locale')}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {schema.fields.map((field) => (
-                      <TableRow key={field.name}>
-                        <TableCell>
-                          <FieldName name={field.name} />
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-mono">
-                            {field.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <FieldFlags field={field} />
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">{field.locale || <None />}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TabsContent>
-
-              <TabsContent value="json" className="relative">
-                <Button variant="outline" size="sm" className="absolute top-2 right-2" onClick={() => void copySchema()}>
-                  <CopyIcon />
-                  {t('collection.copy')}
-                </Button>
-                <pre className="max-h-[60vh] overflow-auto rounded-xl border bg-muted/40 p-4 font-mono text-xs">
-                  {JSON.stringify(schema, null, 2)}
-                </pre>
-              </TabsContent>
-            </Tabs>
-          )}
+          {/* Remounted after a save or discard, so the next edit starts from the current schema. */}
+          <SchemaEditor key={version} schema={schema} onReset={() => setVersion((v) => v + 1)} />
         </>
       )}
     </>
@@ -182,34 +114,6 @@ function SetList({ sets }: { sets?: string[] }) {
           {set}
         </Badge>
       ))}
-    </div>
-  )
-}
-
-/** Nested fields ("specs.dimensions.width") are indented by depth, with the parent path muted. */
-function FieldName({ name }: { name: string }) {
-  const parts = name.split('.')
-  const leaf = parts.pop()
-  return (
-    <span className="font-mono text-sm" style={{ paddingLeft: `${parts.length * 1.25}rem` }}>
-      {parts.length > 0 && <span className="text-muted-foreground">{parts.join('.')}.</span>}
-      <span className="font-medium">{leaf}</span>
-    </span>
-  )
-}
-
-function FieldFlags({ field }: { field: CollectionField }) {
-  const { t } = useTranslation()
-  const flags = FLAGS.filter((flag) => field[flag])
-  if (flags.length === 0 && field.index !== false) return <None />
-  return (
-    <div className="flex flex-wrap gap-1">
-      {flags.map((flag) => (
-        <Badge key={flag} variant="secondary">
-          {flag}
-        </Badge>
-      ))}
-      {field.index === false && <Badge variant="outline">{t('collection.notIndexed')}</Badge>}
     </div>
   )
 }

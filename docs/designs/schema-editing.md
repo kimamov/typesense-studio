@@ -70,8 +70,8 @@ draft and the original schema.
     shown. Planned for the next iteration.
 *   Filling a new non-optional field with default values and re-indexing, with
     a warning that this blocks the server. Planned for the next iteration.
-*   Editing settings beyond type and the six flags in the table (`locale`,
-    `reference`, `embed`, `num_dim` and others). They can only be changed in
+*   Editing settings beyond type, `locale` and the six flags in the form
+    (`reference`, `embed`, `num_dim` and others). They can only be changed in
     the JSON editor, or not at all for `embed` and `reference` fields (see Open
     Questions).
 *   Editing keys that Typesense fixes at creation (`name`,
@@ -239,18 +239,26 @@ A module with pure functions and no React, so it can be tested on its own.
 
 ### Edit mode on the schema page
 
-*   **Start**: An "Edit schema" button next to the tabs. It copies the current
-    query data into `base` and builds the draft. While editing, the page shows
-    the draft, not the live query, so a background refetch cannot change what
-    the user sees.
-*   **Fields table**: The existing table gets editable cells: type as a select
-    over the known types, one checkbox per flag, a delete button per row, and a
-    row at the bottom to add a field (name, type). Names of existing fields are
-    plain text with a hint on hover: "To rename, delete the field and add a new
-    one. Values do not move to the new name." Rows show their state: new,
-    changed, or deleted (struck through, with undo). Rows the table cannot
-    edit safely are read-only with a reason: wildcard fields (`.*`),
-    fields with `embed` or `reference`, and types the select does not know.
+*   **Always editable**: The page has no separate read-only view (changed
+    after v1, following the original typesense-dashboard). Below the facts row
+    it shows the editor directly. On mount it copies the current query data
+    into `base` and builds the draft. The page shows the draft, not the live
+    query, so a background refetch cannot change what the user sees. After a
+    save or a discard the editor is mounted again from the current schema.
+*   **Fields form**: One fieldset per field, its name as the legend, with
+    labelled controls: type as a select over the known types, locale for
+    `string*` types, one labelled checkbox per flag, and "Remove field". "Add
+    field" appends an empty optional field and focuses its name input; only
+    new fields have a name input, since fields cannot be renamed. Cards show
+    their state as a colored left edge plus a badge: new or changed. Removed
+    fields collapse into a struck-through line with undo. Empty and duplicate
+    names are shown under the name input. Fields the form cannot edit safely
+    keep their controls disabled with the reason shown inline: wildcard fields
+    (`.*`), fields with `embed` or `reference`, and types the select does not
+    know.
+*   **Action bar**: Sticky at the bottom of the page: the number of unsaved
+    changes, "Discard changes" (asks first) and "Review changes". Both are
+    disabled while nothing changed.
 *   **JSON editor**: The lazily loaded CodeMirror editor with its textarea
     fallback, moved out of the search page into a shared component. It shows
     `{ fields, metadata, synonym_sets }` of the draft. Its text is parsed into
@@ -274,16 +282,15 @@ A module with pure functions and no React, so it can be tested on its own.
     runs and the request is never retried automatically.
     *   Success: invalidate the query key prefix `[connectionId, 'collections']`
         (the collections list, this schema, and so the search page), close the
-        dialog, leave edit mode, show a toast.
+        dialog, mount the editor again from the fresh schema, show a toast.
     *   Server error (`TypesenseError`): show the message as returned in the
-        dialog. Draft and edit mode stay.
+        dialog. The draft stays.
     *   No answer (network error, aborted): show "No answer from the server.
         The change may still be running." Refetch the schema. The user can
-        close the dialog and check the result in the table.
+        discard the draft to see the schema as it is now.
 *   **Leaving with unsaved changes**: Navigating away, switching the collection
     in the sidebar, or reloading asks first (TanStack Router's blocker plus
-    `beforeunload`). "Cancel" in edit mode asks first if the draft differs
-    from `base`.
+    `beforeunload`). "Discard changes" asks first.
 
 ### Search page after a schema change
 
