@@ -1,7 +1,7 @@
 import { TypesenseError, type TypesenseClient } from './client'
 import type { DocumentAction, ImportResult, TypesenseDocument } from './document-form'
 import type { SearchParams, SearchResponse } from './search'
-import type { ApiKey, ApiKeyInput, CollectionSchema, DebugInfo, HealthInfo, Metrics, SchemaUpdate, Stats } from './types'
+import type { Alias, ApiKey, ApiKeyInput, CollectionSchema, DebugInfo, HealthInfo, Metrics, SchemaUpdate, Stats } from './types'
 
 export const api = {
   health: (client: TypesenseClient, signal?: AbortSignal) =>
@@ -28,6 +28,13 @@ export const api = {
     client.request<string>('GET', `/collections/${encodeURIComponent(name)}/documents/export`, { raw: true }),
   updateCollection: (client: TypesenseClient, name: string, body: SchemaUpdate) =>
     client.request<SchemaUpdate>('PATCH', `/collections/${encodeURIComponent(name)}`, { body }),
+  aliases: (client: TypesenseClient, signal?: AbortSignal) =>
+    client.request<{ aliases: Alias[] }>('GET', '/aliases', { signal }).then((response) => response.aliases),
+  /** Creates the alias or points it at another collection. Typesense does not check that the collection exists. */
+  upsertAlias: (client: TypesenseClient, name: string, collection: string) =>
+    client.request<Alias>('PUT', `/aliases/${encodeURIComponent(name)}`, { body: { collection_name: collection } }),
+  deleteAlias: (client: TypesenseClient, name: string) =>
+    client.request<Alias>('DELETE', `/aliases/${encodeURIComponent(name)}`),
   keys: (client: TypesenseClient, signal?: AbortSignal) =>
     client.request<{ keys: ApiKey[] }>('GET', '/keys', { signal }).then((response) => response.keys),
   createKey: (client: TypesenseClient, input: ApiKeyInput) => client.request<ApiKey>('POST', '/keys', { body: input }),

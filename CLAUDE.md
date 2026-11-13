@@ -48,6 +48,7 @@ Verified against Typesense 30; details in `docs/designs/schema-editing.md`.
 - Dropping or changing the field named in `default_sorting_field` silently clears that setting for good.
 - For wildcard searches, facet `stats.total_values` is capped at `max_facet_values`; ask for one value more to know whether there are more (`FACET_VALUES`).
 - Unknown key actions are accepted without error, and the bootstrap key never appears in `GET /keys`.
+- `PUT /aliases/:name` overwrites an existing alias without asking and does not check that the collection exists; deleting a collection keeps its aliases. An alias may not be named like a collection (answered with 500), but a collection may be named like an alias.
 
 ## Workflow
 

@@ -81,6 +81,11 @@ export interface CollectionSchema {
   [key: string]: unknown
 }
 
+export interface Alias {
+  name: string
+  collection_name: string
+}
+
 export interface ApiKey {
   id: number
   description: string
