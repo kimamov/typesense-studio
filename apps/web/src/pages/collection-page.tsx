@@ -23,6 +23,7 @@ export function CollectionPage({ name }: { name: string }) {
     queryKey: [connection.id, 'collections', name],
     queryFn: ({ signal }) => api.collection(client, name, signal),
   })
+  const aliases = useQuery({ queryKey: [connection.id, 'aliases'], queryFn: ({ signal }) => api.aliases(client, signal) })
 
   const backLink = (
     <Link
@@ -74,7 +75,7 @@ export function CollectionPage({ name }: { name: string }) {
         <Skeleton className="h-64" />
       ) : (
         <>
-          <dl className="grid grid-cols-2 gap-4 rounded-xl border p-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
+          <dl className="grid grid-cols-2 gap-4 rounded-xl border p-4 text-sm sm:grid-cols-3 lg:grid-cols-6">
             <Fact label={t('collections.documents')}>{formatNumber(schema.num_documents, lng, 0)}</Fact>
             <Fact label={t('collections.createdAt')}>{formatDate(schema.created_at, lng)}</Fact>
             <Fact label={t('collection.defaultSortingField')}>
@@ -85,6 +86,9 @@ export function CollectionPage({ name }: { name: string }) {
             </Fact>
             <Fact label={t('collection.curationSets')}>
               <SetList sets={schema.curation_sets} />
+            </Fact>
+            <Fact label={t('collection.aliases')}>
+              <SetList sets={aliases.data?.filter((alias) => alias.collection_name === name).map((alias) => alias.name)} />
             </Fact>
           </dl>
 

@@ -7,6 +7,7 @@ import {
   DatabaseIcon,
   KeyRoundIcon,
   LibraryIcon,
+  Link2Icon,
   SettingsIcon,
   SlidersHorizontalIcon,
   type LucideIcon,
@@ -50,7 +51,7 @@ import type { Connection } from '@/lib/typesense/types'
 import { useApiKey, useConnection, useConnections } from '@/stores/connections'
 
 interface NavItem {
-  to: '/c/$connectionId' | '/c/$connectionId/keys' | '/c/$connectionId/collections'
+  to: '/c/$connectionId' | '/c/$connectionId/keys' | '/c/$connectionId/collections' | '/c/$connectionId/aliases'
   label: string
   icon: LucideIcon
 }
@@ -99,7 +100,13 @@ export function ConnectionLayout({ connectionId }: { connectionId: string }) {
         { to: '/c/$connectionId/keys', label: t('nav.apiKeys'), icon: KeyRoundIcon },
       ],
     },
-    { label: t('nav.data'), items: [{ to: '/c/$connectionId/collections', label: t('nav.collections'), icon: LibraryIcon }] },
+    {
+      label: t('nav.data'),
+      items: [
+        { to: '/c/$connectionId/collections', label: t('nav.collections'), icon: LibraryIcon },
+        { to: '/c/$connectionId/aliases', label: t('nav.aliases'), icon: Link2Icon },
+      ],
+    },
   ]
 
   return (
